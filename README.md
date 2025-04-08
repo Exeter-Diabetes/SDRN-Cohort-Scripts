@@ -16,6 +16,14 @@ A description of the SRDN cohort can be found at: [DOI 10.1136/bmjopen-2022-0630
 All cohorts creates use the latest version of NDS (Natial Diabetes Dataset).
 
 
+&nbsp;
+
+## Codelists
+Codelists used for this cohort can be found at: [https://github.com/Exeter-Diabetes/CPRD-Codelists](https://github.com/Exeter-Diabetes/CPRD-Codelists)
+
+
+&nbsp;
+
 ## Comorbidities
 Comorbidities have been coded using ICD10/OPCS4 codes.
 
