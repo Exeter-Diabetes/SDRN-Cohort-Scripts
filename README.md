@@ -31,7 +31,7 @@ Comorbidities have been coded using ICD10/OPCS4 codes.
 &nbsp;
 
 ## Index of multiple deprivation (SIMD)
-SIMD is coded as 1=most deprived, 10=least deprived
+SIMD is coded as 1=most deprived, 10=least deprived. This differs from England deprivation score, where 1=least deprived, 10=most deprived. Two variables have been created: simd_decile (scottish version), imd_decile (translation of scottish to english).
 
 
 &nbsp;
@@ -40,5 +40,6 @@ SIMD is coded as 1=most deprived, 10=least deprived
 
 - EFI: electronic frailty index ([https://pubmed.ncbi.nlm.nih.gov/26944937/](https://pubmed.ncbi.nlm.nih.gov/26944937/))
 - Non diabetes medication: e.g. blood pressure medication/statins
+- QRISK2
 
 
