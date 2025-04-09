@@ -7,7 +7,7 @@ This repository contains the R scripts used by the Exeter Diabetes team to produ
 * A **prevalent** cohort (registered at XX/XX/2024) 
 * A **treatment response** (MASTERMIND) cohort (those initiating diabetes medications)
 
-A description of the SRDN cohort can be found at: [DOI 10.1136/bmjopen-2022-063046](www.doi.org/10.1136/bmjopen-2022-063046)
+A description of the SRDN cohort can be found at: [DOI 10.1136/bmjopen-2022-063046](https://www.doi.org/10.1136/bmjopen-2022-063046)
 
 
 &nbsp;
@@ -34,6 +34,11 @@ Comorbidities have been coded using ICD10/OPCS4 codes.
 SIMD is coded as 1=most deprived, 10=least deprived
 
 
+&nbsp;
 
+## Things not codded yet:
+
+- EFI: electronic frailty index ([https://pubmed.ncbi.nlm.nih.gov/26944937/](https://pubmed.ncbi.nlm.nih.gov/26944937/))
+- Non diabetes medication: e.g. blood pressure medication/statins
 
 
