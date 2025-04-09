@@ -28,6 +28,10 @@ Codelists used for this cohort can be found at: [https://github.com/Exeter-Diabe
 Comorbidities have been coded using ICD10/OPCS4 codes.
 
 
+&nbsp;
+
+## Index of multiple deprivation (SIMD)
+SIMD is coded as 1=most deprived, 10=least deprived
 
 
 
