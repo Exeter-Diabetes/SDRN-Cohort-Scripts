@@ -1,47 +1,32 @@
-# At-diagnosis cohort
+# Prevalent cohort
 
-The 'at-diagnosis' cohort (n=XX) consists of all those in the diabetes cohort (see [flow diagram](https://github.com/Exeter-Diabetes/SDRN-Cohort-Scripts/blob/main/README.md#introduction)). The cohort dataset includes biomarker/comorbidity/sociodemographic info at diabetes diagnosis date.
+The prevalent cohort consists of those actively registered on 01/11/2022 (the index date) who have a diabetes diagnosis before/on this date, and who have linked HES records, with added biomarker/comorbidity/sociodemographic/medication info at this date.
 
 &nbsp;
 
 ## Script overview
 
-The below diagram shows the R scripts (in grey boxes) used to create the at-diagnosis cohort. The diabetes diagnosis dates from the "all_diabetes_cohort" script are required to define the baseline biomarkers, comorbidities, smoking status, alcohol status and CKD stage at diagnosis.
-
+The below diagram shows the R scripts (in grey boxes) used to create the prevalent cohort.
 
 ```mermaid
 graph TD;
-    A["<b>Our extract</b>"] --> |"all_diabetes_cohort"| B["<b>Diabetes cohort</b> with static <br> patient data including <br> ethnicity and SIMD*"]
-    A---C[ ]:::empty
-    B---C
-    C --> |"baseline_biomarkers <br> (requires index date)"| J["<b>Biomarkers</b> <br> at index date"]
-    
-    A---D[ ]:::empty
-    B---D
-    D --> |"comorbidities <br> (requires index date)"| K["<b>Comorbidities</b> <br> at index date"]
-    
-    A---E[ ]:::empty
-    B---E[ ]
-    E --> |"smoking <br> (requires index date)"| L["<b>Smoking status</b> <br> at index date"]
-    
-    A---F[ ]:::empty
-    B---F[ ]:::empty
-    F --> |"alcohol <br> (requires index date)"| M["<b>Alcohol status</b> <br> at index date"]
-    
-    A---G[ ]:::empty
-    A---G[ ]:::empty
-    G --> |"ckd_stages <br> (requires index date)"| N["<b>CKD stage</b <br> at index date"]
-    
-    
-    B --> |"final_merge"| I["<b>Final cohort dataset</b>"]
-    J --> |"final_merge"| I
-    K --> |"final_merge"| I
-    M --> |"final_merge"| I
-    F --> |"final_merge"| I
-    N --> |"final_merge"| I
+    A["<b>Our extract</b> <br> with linked HES APC, patient IMD, and ONS death data"] --> |"all_diabetes_cohort <br> & all_patid_ethnicity"|B["<b>Diabetes cohort</b> with <br> static patient data <br> including ethnicity <br> and IMD*"]
+    A-->|"all_patid_ckd_stages"|C["<b>Longitudinal CKD <br> stages</b> for all <br> patients"]
+    A-->|"baseline_biomarkers <br> (requires index date)"|E["<b>Biomarkers</b> <br> at 01/11/2022"]
+    A-->|"comorbidities <br> (requires index date)"|F["<b>Comorbidities</b> <br> at 01/11/2022"]
+    A-->|"smoking <br> (requires index date)"|G["<b>Smoking status</b> <br> at 01/11/2022"]
+    A-->|"alcohol <br> (requires index date)"|H["<b>Alcohol status</b> <br> at 01/11/2022"]
+    C-->|"ckd_stages <br> (requires index date)"|I["<b>CKD stage </b> <br> at 01/11/2022"]
+    B-->|"final_merge"|J["<b>Final cohort dataset</b>"]
+    E-->|"final_merge"|J
+    F-->|"final_merge"|J
+    G-->|"final_merge"|J
+    H-->|"final_merge"|J
+    I-->|"final_merge"|J    
 ```
 \*SIMD=Scottish Index of Multiple Deprivation; 'static' using the 2016 data. SIMD is coded as 1=most deprived, 10=least deprived. This differs from England deprivation score, where 1=least deprived, 10=most deprived. Two variables have been created: simd_decile (scottish version), imd_decile (translation of scottish to english).
 
+The scripts shown in the above diagram (in grey boxes) can be found in this directory, except those which are common to the other cohorts (all_diabetes_cohort) which are in the upper directory of this repository.
 
 &nbsp;
 
@@ -58,6 +43,7 @@ graph TD;
 |**at_diag_alcohol**: finds alcohol status at cohort index dates | **at_diag_alcohol**: 1 row per patid (as there are no patids with >1 index date) with alcohol status at index date where available |
 |**at_diag_final_merge**: brings together variables from all of the above tables | **at_diag_final_merge**: 1 row per patid -(as there are no patids with >1 index date) with relevant biomarker/comorbidity/smoking/alcohol variables |
 
+
 &nbsp;
 
 ## Data dictionary of variables in 'at_diag_final_merge' table
@@ -65,6 +51,8 @@ graph TD;
 Biomarkers included: HbA1c (mmol/mol), weight (kg), height (m), BMI (kg/m2), fasting glucose (mmol/L), HDL (mmol/L), triglycerides (mmol/L), blood creatinine (umol/L), LDL (mmol/L), ALT (U/L), AST (U/L), total cholesterol (mmol/L), DBP (mmHg), SBP (mmHg), ACR (mg/mmol / g/mol). NB: BMI is from BMI codes only, not calculated from weight+height.
 
 Comorbidities included: atrial fibrillation, angina (overall and specifically unstable angina recorded in hospital), anxiety, asthma, benign prostate hyperplasia, bronchiectasis, CKD stage 5/ESRD, CLD, COPD, cystic fibrosis, dementia, diabetic nephropathy, DKA (hospital data only), falls, family history of diabetes, family history of premature cardiovascular disease, mild/moderate/severe frailty, haematological cancers, heart failure, major and minor amputations in hospital (doesn't only include primary cause), hypertension (uses primary care data only, see note in script), IHD, lower limb fracture, myocardial infarction (overall and more specifically in hospital with a reduced codelists: 'incident_mi'), neuropathy, osteoporosis, other neurological conditions, PAD, photocoagulation therapy (hospital data only), pulmonary fibrosis, pulmonary hypertension, retinopathy, (coronary artery) revascularisation, rhematoid arthritis, solid cancer, solid organ transplant, stroke (overall and more specifically in hospital with a reduced codelists: 'incident_stroke'), TIA, vitreous haemorrhage (hospital data only), 'primary_hhf' (hospitalisation for HF with HF as primary cause), 'primary_incident_mi' (hospitalisation for MI with MI as primary cause using incident_mi codelist), 'primary_incident_stroke' (hospitalisation for stroke with stroke as primary cause using incident_stroke codelist), osmotic symptoms (micturition control, volume depletion, urinary frequency).
+
+
 
 | Variable name | Description | Notes on derivation |
 | --- | --- | --- |
