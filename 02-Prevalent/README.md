@@ -10,19 +10,18 @@ The below diagram shows the R scripts (in grey boxes) used to create the prevale
 
 ```mermaid
 graph TD;
-    A["<b>Our extract</b> <br> with linked HES APC, patient IMD, and ONS death data"] --> |"all_diabetes_cohort <br> & all_patid_ethnicity"|B["<b>Diabetes cohort</b> with <br> static patient data <br> including ethnicity <br> and IMD*"]
-    A-->|"all_patid_ckd_stages"|C["<b>Longitudinal CKD <br> stages</b> for all <br> patients"]
+    A["<b>Our extract</b>"] --> |"all_diabetes_cohort"|B["<b>Diabetes cohort</b> with <br> static patient data <br> including ethnicity <br> and SIMD*"]
+    A-->|"ckd_stages <br> (requires index date)"|C["<b>CKD stage </b> <br> at 01/11/2022"]
     A-->|"baseline_biomarkers <br> (requires index date)"|E["<b>Biomarkers</b> <br> at 01/11/2022"]
     A-->|"comorbidities <br> (requires index date)"|F["<b>Comorbidities</b> <br> at 01/11/2022"]
     A-->|"smoking <br> (requires index date)"|G["<b>Smoking status</b> <br> at 01/11/2022"]
     A-->|"alcohol <br> (requires index date)"|H["<b>Alcohol status</b> <br> at 01/11/2022"]
-    C-->|"ckd_stages <br> (requires index date)"|I["<b>CKD stage </b> <br> at 01/11/2022"]
     B-->|"final_merge"|J["<b>Final cohort dataset</b>"]
+    C-->|"final_merge"|J  
     E-->|"final_merge"|J
     F-->|"final_merge"|J
     G-->|"final_merge"|J
-    H-->|"final_merge"|J
-    I-->|"final_merge"|J    
+    H-->|"final_merge"|J  
 ```
 \*SIMD=Scottish Index of Multiple Deprivation; 'static' using the 2016 data. SIMD is coded as 1=most deprived, 10=least deprived. This differs from England deprivation score, where 1=least deprived, 10=most deprived. Two variables have been created: simd_decile (scottish version), imd_decile (translation of scottish to english).
 
