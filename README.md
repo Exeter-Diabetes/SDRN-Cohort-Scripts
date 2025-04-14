@@ -38,7 +38,7 @@ graph TD;
     A --> |"smoking <br> (requires index date)"| E["<b>Smoking status</b> <br> at index date"]
     A --> |"alcohol <br> (requires index date)"| F["<b>Alcohol status</b> <br> at index date"]
     A --> |"ckd_stages <br> (requires index date)"| G["<b>CKD stage</b <br> at index date"]
-    A --> H["<b>Death causes</b> <br> for all patients"]
+    A --> |"all_death_causes"| H["<b>Death causes</b> <br> for all patients"]
     
     B --> |"final_merge"| I["<b>Final cohort dataset</b>"]
     C --> |"final_merge"| I
@@ -59,6 +59,15 @@ This directory contains the scripts which are common to all three cohorts: 'all_
 
 
 The exact 'tailored' and additional scripts used to create each cohort dataset can be found in the relevant subdirectory: [01-At-diagnosis](https://github.com/Exeter-Diabetes/SDRN-Cohort-Scripts/tree/main/01-At-diagnosis), [02-Prevalent](https://github.com/Exeter-Diabetes/SDRN-Cohort-Scripts/tree/main/02-Prevalent), [03-Treatment-response-(MASTERMIND)](https://github.com/Exeter-Diabetes/SDRN-Cohort-Scripts/tree/main/03-Treatment-response-(MASTERMIND)), along with a data dictionary of all variables in the final cohort dataset.
+
+&nbsp;
+
+
+| Script description | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Outputs&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |
+| ---- | ---- |
+| **all_patid_death_causes**: uses ONS death data to define whether primary or any cause of death was from CVD/heart failure/kidney failure (all primary and secondary death causes also included) |  **all_patid_death_causes**:  1 row per patid, with all death causes and binary variables for whether CVD/HF/KF was primary or any cause of death  |
+| **all_diabetes_cohort**: table of patids meeting the criteria for our mixed Type 1/Type 2/'other' diabetes cohort plus additional patient variables | **all_diabetes_cohort**: 1 row per patid of those in the diabetes cohort, with diabetes diagnosis dates, DOB, gender, ethnicity etc. |
+ **{cohort_prefix}\_final_merge**: 1 row per patid-index date combination with relevant biomarker/comorbidity/smoking/alcohol variables |
 
 &nbsp;
 
