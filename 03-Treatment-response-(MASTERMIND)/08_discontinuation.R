@@ -1,28 +1,14 @@
 # Author: pcardoso
 ###############################################################################
 
-# Identify those with diabetes type 2, discontinuation at 3-/6-/12-months
+# Collect discontinuation at 3-/6-/12-months for combos
 
 ###############################################################################
+
+rm(list=ls())
 
 # load libraries
 library(tidyverse)
-
-
-###############################################################################
-
-
-# Setup dataset with type 2 diabetes
-
-## connection to database
-con <- dbConn("NDS_2023")
-## select patients with type 2 diabetes
-cohort.diabetestype2.raw <- dbGetQueryMap(con, "
-				SELECT serialno, date_of_birth, date_of_death, earliest_mention, dm_type, gender, ethnic
-				FROM o_person 
-				WHERE date_of_birth < '2022-11-01' AND 
-				dm_type = 2 AND earliest_mention IS NOT NULL")
-
 
 
 ###############################################################################

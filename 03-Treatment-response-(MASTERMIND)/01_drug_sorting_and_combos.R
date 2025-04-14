@@ -1,9 +1,11 @@
 # Author: pcardoso
 ###############################################################################
 
-# Identify those with diabetes type 2, collect drug combos for each patient
+# Collect drug combos for each patient
 
 ###############################################################################
+
+rm(list=ls())
 
 # load libraries
 library(tidyverse)
@@ -14,27 +16,16 @@ drug_class_table <- readRDS("/home/pcardoso/workspace/SDRN-Cohort-scripts/Codeli
 
 ###############################################################################
 
-
-# Setup dataset with type 2 diabetes
-
 ## connection to database
 con <- dbConn("NDS_2023")
-## select patients with type 2 diabetes
-cohort.diabetestype2.raw <- dbGetQueryMap(con, "
-	SELECT serialno, date_of_birth, date_of_death, earliest_mention, dm_type, gender, ethnic
-	FROM o_person 
-	WHERE date_of_birth < '2022-11-01' AND 
-		dm_type = 2 AND earliest_mention IS NOT NULL")
 
 ## Select Metformin initiations for type 2 diabetes patients
 mfn_initiations <- dbGetQueryMap(con, "
 	SELECT 
 		o_drug_era.serialno, o_drug_era.startdate, o_drug_era.enddate, o_drug_era.dailyexposure,
 		o_concept_drugs.drugname, o_concept_drugs.strength
-	FROM o_drug_era, o_concept_drugs, o_person
+	FROM o_drug_era, o_concept_drugs
 	WHERE
-		o_person.date_of_birth < '2022-11-01' AND o_person.dm_type = 2 AND o_person.earliest_mention IS NOT NULL AND
-		o_person.serialno = o_drug_era.serialno AND
 		o_drug_era.concept_id = o_concept_drugs.UID AND
 			(drugname LIKE 'METFORMIN%' OR 
 				drugname IN ('GLUCOPHAGE', 'GLUCOPHAGE SR', 'BOLAMYN SR', 'JANUMET', 
@@ -56,10 +47,8 @@ sglt2_initiations <- dbGetQueryMap(con, "
 	SELECT 
 		o_drug_era.serialno, o_drug_era.startdate, o_drug_era.enddate, o_drug_era.dailyexposure,
 		o_concept_drugs.drugname, o_concept_drugs.strength
-	FROM o_drug_era, o_concept_drugs, o_person
+	FROM o_drug_era, o_concept_drugs
 	WHERE
-		o_person.date_of_birth < '2022-11-01' AND o_person.dm_type = 2 AND o_person.earliest_mention IS NOT NULL AND
-		o_person.serialno = o_drug_era.serialno AND
 		o_drug_era.concept_id = o_concept_drugs.UID AND
 			(drugname IN ('DAPAGLIFLOZIN', 'DAPAGLIFLOZIN AND METFORMIN', 'FORXIGA', 'XIGDUO', 'CANAGLIFLOZIN',
 						'CANAGLIFLOZIN AND METFORMIN', 'INVOKANA', 'EMPAGLIFLOZIN', 'EMPAGLIFLOZIN AND LINAGLIPTIN',
@@ -78,10 +67,8 @@ tzd_initiations <- dbGetQueryMap(con, "
 	SELECT
 		o_drug_era.serialno, o_drug_era.startdate, o_drug_era.enddate, o_drug_era.dailyexposure,
 		o_concept_drugs.drugname, o_concept_drugs.strength
-	FROM o_drug_era, o_concept_drugs, o_person
+	FROM o_drug_era, o_concept_drugs
 	WHERE
-		o_person.date_of_birth < '2022-11-01' AND o_person.dm_type = 2 AND o_person.earliest_mention IS NOT NULL AND
-		o_person.serialno = o_drug_era.serialno AND
 		o_drug_era.concept_id = o_concept_drugs.UID AND
 			(drugname IN ('ROSIGLITAZONE', 'ROSIGLITAZONE MALEATE', 'ROSIGLITAZONE AND METFORMIN', 'ROSIGLITAZONE + METFORMIN',
 						'ROSIGLITAZONE WITH METFORMIN', 'ROSIGLITAZONE F-C', 'ROSIGLITAZONE ROSIGLITAZONE', 'ROSIGLITAZONE / METFORMIN',
@@ -105,10 +92,8 @@ dpp4_initiations <- dbGetQueryMap(con, "
 						SELECT
 						o_drug_era.serialno, o_drug_era.startdate, o_drug_era.enddate, o_drug_era.dailyexposure,
 						o_concept_drugs.drugname, o_concept_drugs.strength
-						FROM o_drug_era, o_concept_drugs, o_person
+						FROM o_drug_era, o_concept_drugs
 						WHERE
-						o_person.date_of_birth < '2022-11-01' AND o_person.dm_type = 2 AND o_person.earliest_mention IS NOT NULL AND
-						o_person.serialno = o_drug_era.serialno AND
 						o_drug_era.concept_id = o_concept_drugs.UID AND
 						(drugname IN ('SITAGLIPTIN', 'SITAGLIPTIN + METFORMIN', 'SITAGLIPTON', 'SITAGLIPTAIN', 'SITAGLIPTAN / METFORMIN',
 									'SITAGLEPTIN', 'SITAGLIPITIN', 'SITAGLIPTIW', 'JANUVIA', 'VILDAGLIPTIN', 'VILDAGLIPTIN + METFORMIN',
@@ -130,10 +115,8 @@ su_initiations <- dbGetQueryMap(con, "
 						SELECT
 						o_drug_era.serialno, o_drug_era.startdate, o_drug_era.enddate, o_drug_era.dailyexposure,
 						o_concept_drugs.drugname, o_concept_drugs.strength
-						FROM o_drug_era, o_concept_drugs, o_person
+						FROM o_drug_era, o_concept_drugs
 						WHERE
-						o_person.date_of_birth < '2022-11-01' AND o_person.dm_type = 2 AND o_person.earliest_mention IS NOT NULL AND
-						o_person.serialno = o_drug_era.serialno AND
 						o_drug_era.concept_id = o_concept_drugs.UID AND
 						(drugname IN ('AMARYL', 'CHLORPROPAMIDE' ,'DAONIL' ,'SEMI-DAONIL', 'SEMI DAONIL', 'SEMI / DAONIL',
 									'DIABETAMIDE', 'DIAMICRON', 'DIAMICRON SR', 'DIAMICRON DIAMICRON', 'DIAMICRON 80 MGM',
@@ -156,10 +139,8 @@ glp1_initiations <- dbGetQueryMap(con, "
 						SELECT
 						o_drug_era.serialno, o_drug_era.startdate, o_drug_era.enddate, o_drug_era.dailyexposure,
 						o_concept_drugs.drugname, o_concept_drugs.strength
-						FROM o_drug_era, o_concept_drugs, o_person
+						FROM o_drug_era, o_concept_drugs
 						WHERE
-						o_person.date_of_birth < '2022-11-01' AND o_person.dm_type = 2 AND o_person.earliest_mention IS NOT NULL AND
-						o_person.serialno = o_drug_era.serialno AND
 						o_drug_era.concept_id = o_concept_drugs.UID AND
 						(drugname IN ('LIRAGLUTIDE', 'LIRAGLUTIDE INJECTION', 'INSULIN DEGLUDEC 100 UNITS / ML / LIRAGLUTIDE',
 									'LIRAGLUTIDE PREFILLED', 'INSULIN DEGLUDEC AND LIRAGLUTIDE', 'LIRAGLUTIDE 1' ,
@@ -324,7 +305,6 @@ all_scripts_long <- all_scripts_long %>%
 
 
 save(all_scripts_long, file = "/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_all_scripts_long.RData")
-
 
 ##################################################################
 # all_scripts table: 1 line per serialno / date, with drug class and drug substance info in wide format
@@ -514,61 +494,85 @@ all_scripts <- all_scripts %>%
 #all_scripts %>% filter(numdrugs_substance!=numdrugs_substance2 | is.na(numdrugs_substance) | is.na(numdrugs_substance2)) %>% nrow()
 #0 - perfect
 
+
 # Define whether date is start or stop for each drug combination
 ## Coded differently to drug classes as patient can only be on one combination at once
 ## Find time from previous script (dcprevuse) and to next script (dcnextuse) for same person and same drug combo
 ## If previous script is for a different drug combo or no previous script, define as start date (dcstart = 1)
 ## If next script is for a different drug combo or no next script, define as stop date (dcstop = 1)
-all_scripts <- all_scripts %>%
-		group_by(serialno, drug_class_combo) %>%
+## For this, split between class analysis and substance analysis
+all_scripts_class <- all_scripts %>%
+		group_by(serialno) %>%
 		arrange(date) %>%
+		filter(numstart_class > 0 | numstop_class > 0) %>%
 		mutate(
 			dcnextuse_class = difftime(lead(date), date, units = "days"),
 			dcprevuse_class = difftime(date, lag(date), units = "days")
 		) %>%
 		ungroup()
+		
 
-
-all_scripts <- all_scripts %>%
-		group_by(serialno, drug_substance_combo) %>%
+all_scripts_substance <- all_scripts %>%
+		group_by(serialno) %>%
 		arrange(date) %>%
+		filter(numstart_substance > 0 | numstop_substance > 0) %>%
 		mutate(
 			dcnextuse_substance = difftime(lead(date), date, units = "days"),
 			dcprevuse_substance = difftime(date, lag(date), units = "days")
 		) %>%
 		ungroup()
 
-all_scripts <- all_scripts %>%
+
+
+
+all_scripts_class <- all_scripts_class %>%
 		group_by(serialno) %>%
 		arrange(date) %>%
 		mutate(
-			dcstart_class = drug_class_combo!=lag(drug_class_combo) | is.na(dcprevuse_class),
-			dcstop_class = drug_class_combo!=lead(drug_class_combo) | is.na(dcnextuse_class),
-			dcstart_substance = drug_substance_combo!=lag(drug_substance_combo) | is.na(dcprevuse_substance),
-			dcstop_substance = drug_substance_combo!=lead(drug_substance_combo) | is.na(dcnextuse_substance)
+			dcstart_class = ifelse(numstart_class > 0, 1, 0),
+			dcstop_class = ifelse(numstop_class > 0, 1, 0)
 		) %>%
 		ungroup()
 
-#all_scripts %>% nrow()
-#2301488
-
-# Add 'gaps': defined as break of >6 months (183 days) in prescribing of combination
-## Update start and stop dates based on these
-all_scripts <- all_scripts %>%
+all_scripts_substance <- all_scripts_substance %>%
 		group_by(serialno) %>%
 		arrange(date) %>%
 		mutate(
-			stopgap_class = ifelse(dcnextuse_class>183 & drug_class_combo==lead(drug_class_combo), 1, NA),
-			startgap_class = ifelse(dcprevuse_class>183 | is.na(dcprevuse_class), 1, NA),
-			dcstop_class = ifelse(!is.na(stopgap_class) & stopgap_class==1 & dcstop_class==0, 1, dcstop_class),
-			dcstart_class = ifelse(!is.na(startgap_class) & startgap_class==1 & dcstart_class==0, 1, dcstart_class),
-			
-			stopgap_substance = ifelse(dcnextuse_substance>183 & drug_substance_combo==lead(drug_substance_combo), 1, NA),
-			startgap_substance = ifelse(dcprevuse_substance>183 | is.na(dcprevuse_substance), 1, NA),
-			dcstop_substance = ifelse(!is.na(stopgap_substance) & stopgap_substance==1 & dcstop_substance==0, 1, dcstop_substance),
-			dcstart_substance = ifelse(!is.na(startgap_substance) & startgap_substance==1 & dcstart_substance==0, 1, dcstart_substance)
+				dcstart_substance = ifelse(numstart_substance > 0, 1, 0),
+				dcstop_substance = ifelse(numstop_substance > 0, 1, 0)
 		) %>%
 		ungroup()
+
+## Add 'gaps': defined as break of >6 months (183 days) in prescribing of combination
+### Update start and stop dates based on these
+#all_scripts_class <- all_scripts_class %>%
+#		group_by(serialno) %>%
+#		arrange(date) %>%
+#		mutate(
+#			stopgap_class = ifelse(dcnextuse_class>183 & drug_class_combo==lead(drug_class_combo), 1, NA),
+#			startgap_class = ifelse(dcprevuse_class>183 | is.na(dcprevuse_class), 1, NA),
+#			dcstop_class = ifelse(!is.na(stopgap_class) & stopgap_class==1 & dcstop_class==0, 1, dcstop_class),
+#			dcstart_class = ifelse(!is.na(startgap_class) & startgap_class==1 & dcstart_class==0, 1, dcstart_class)
+#		) %>%
+#		ungroup()
+#
+#
+#all_scripts_substance <- all_scripts_substance %>%
+#		group_by(serialno) %>%
+#		arrange(date) %>%
+#		mutate(
+#			stopgap_substance = ifelse(dcnextuse_substance>183 & drug_substance_combo==lead(drug_substance_combo), 1, NA),
+#			startgap_substance = ifelse(dcprevuse_substance>183 | is.na(dcprevuse_substance), 1, NA),
+#			dcstop_substance = ifelse(!is.na(stopgap_substance) & stopgap_substance==1 & dcstop_substance==0, 1, dcstop_substance),
+#			dcstart_substance = ifelse(!is.na(startgap_substance) & startgap_substance==1 & dcstart_substance==0, 1, dcstart_substance)
+#		) %>%
+#		ungroup()
+
+# Join all_scripts_class to all_scripts_substance
+## Remove drug_substance_combo from all_scripts_class
+all_scripts <- all_scripts_substance %>%
+		select(-contains("class")) %>%
+		left_join(all_scripts_class %>% select(-c(contains("substance"))))
 
 # Add in time to last prescription date for each patient (any drug class)
 all_scripts <- all_scripts %>%
@@ -576,7 +580,11 @@ all_scripts <- all_scripts %>%
 		mutate(
 			timetolastpx = difftime(max(date, na.rm = TRUE), date, units = "days")
 		) %>%
-		ungroup()
+		ungroup() %>%
+		mutate(
+			dcstart_class = ifelse(is.na(dcstart_class), 0, dcstart_class),
+			dcstop_class = ifelse(is.na(dcstop_class), 0, dcstop_class)
+		)
 
 #all_scripts %>% nrow()
 #2301488
@@ -795,7 +803,7 @@ combo_class_start_stop <- combo_class_start_stop %>%
 		select(serialno, drug_class_combo, numdrugs_class, dcstartdate, dcstopdate, all_of(drugclasses))
 
 #combo_class_start_stop %>% nrow()
-#1903557
+#1159060
 
 # Add drugcomboorder count within each serialno: how many periods of medication have they had
 ## Also add nextdcdate: date next combination started (use stop date if last combination before end of predictions)
@@ -901,7 +909,7 @@ combo_class_start_stop <- combo_class_start_stop %>%
 		)
 
 #combo_class_start_stop %>% nrow()
-#1903557
+#1159060
 
 save(combo_class_start_stop, file = "/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_combo_class_start_stop.RData")
 
@@ -936,8 +944,8 @@ combo_substance_start_stop <- combo_substance_start_stop %>%
 		filter(dcstart_substance==1) %>%
 		select(serialno, drug_substance_combo, numdrugs_substance, dcstartdate, dcstopdate, all_of(drugsubstances))
 
-#combo_substance_start_stop %>% nrow()
-#1930972
+combo_substance_start_stop %>% nrow()
+#1661424
 
 # Add drugcomboorder count within each serialno: how many periods of medication have they had
 ## Also add nextdcdate: date next combination started (use stop date if last combination before end of predictions)
@@ -1043,7 +1051,7 @@ combo_substance_start_stop <- combo_substance_start_stop %>%
 		)
 
 #combo_substance_start_stop %>% nrow()
-#1930972
+#1212380
 
 save(combo_substance_start_stop, file = "/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_combo_substance_start_stop.RData")
 
@@ -1105,7 +1113,7 @@ combo_start_stop <- combo_start_stop %>%
 		mutate(ncurrtx = DPP4+GLP1+INS+MFN+SGLT2+SU+TZD-1)
 
 #combo_start_stop %>% nrow()
-#1930972
+#1212380
 
 save(combo_start_stop, file = "/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_combo_start_stop.RData")
 

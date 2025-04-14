@@ -1,29 +1,14 @@
 # Author: pcardoso
 ###############################################################################
 
-# Identify those with diabetes type 2, discontinuation at 3-/6-/12-months
+# Collect glycaemic failure for combos
 
 ###############################################################################
+
+rm(list=ls())
 
 # load libraries
 library(tidyverse)
-
-
-###############################################################################
-
-
-# Setup dataset with type 2 diabetes
-
-## connection to database
-con <- dbConn("NDS_2023")
-## select patients with type 2 diabetes
-cohort.diabetestype2.raw <- dbGetQueryMap(con, "
-				SELECT serialno, date_of_birth, date_of_death, earliest_mention, dm_type, gender, ethnic
-				FROM o_person 
-				WHERE date_of_birth < '2022-11-01' AND 
-				dm_type = 2 AND earliest_mention IS NOT NULL")
-
-
 
 ###############################################################################
 
@@ -49,22 +34,9 @@ load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_combo_sta
 drug_start_dates <- drug_start_stop %>%
 		left_join(combo_start_stop, by = c("serialno", "dstartdate" = "dcstartdate"))
 
-# load full HbA1c drug merge
-clean_hba1c_medcodes <- dbGetQueryMap(con, "
-						SELECT o_observation.*
-						FROM o_observation, o_concept_observation, o_person
-						WHERE
-						o_person.date_of_birth < '2022-11-01' AND o_person.dm_type = 2 AND o_person.earliest_mention IS NOT NULL AND
-						o_observation.serialno = o_person.serialno AND
-						o_observation.concept_id = o_concept_observation.uid AND
-						o_concept_observation.path = 'biochem-hba1c'") %>%
-		select(serialno, date, "testvalue" = num.value) %>%
-		drop_na(testvalue) %>%
-		mutate(testvalue = ifelse(testvalue<20, ((testvalue-2.152)/0.09148), testvalue)) %>%
-		filter(testvalue >= 20 & testvalue <= 195) %>%
-		group_by(serialno, date) %>%
-		summarise(testvalue = mean(testvalue, na.rm = TRUE)) %>%
-		ungroup()
+
+# load clean HbA1c tables
+load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_clean_hba1c_medcodes.RData")
 
 
 ## Merge with biomarkers and calculate date difference between biomarker and drug start date

@@ -1,29 +1,29 @@
 # Author: pcardoso
 ###############################################################################
 
-# Identify those with diabetes type 2, CKD stages
+# Collect CKD stages for combos
 
 ###############################################################################
+
+rm(list=ls())
 
 # load libraries
 library(tidyverse)
 
-
-###############################################################################
-
-
-# Setup dataset with type 2 diabetes
-
-## connection to database
-con <- dbConn("NDS_2023")
-## select patients with type 2 diabetes
-cohort.diabetestype2.raw <- dbGetQueryMap(con, "
-				SELECT serialno, date_of_birth, date_of_death, earliest_mention, dm_type, gender, ethnic
-				FROM o_person 
-				WHERE date_of_birth < '2022-11-01' AND 
-				dm_type = 2 AND earliest_mention IS NOT NULL")
-
-
+# function
+## 'clean_codes' ensures the 3rd and 4th characters are separated by a dot "." (SDRN necessity)
+### 'codelist' list of codes for a particular comorbidity
+clean_codes <- function(codelist) {
+	# iterate through codelist
+	for (code in 1:length(codelist)) {
+		# if code >3 characters and 4th character is not a dot "."
+		if (nchar(codelist[code]) > 3 && substr(codelist[code], 4, 4) != ".") {
+			# add a dot after the 3rd character
+			codelist[code] <- paste0(substr(codelist[code], 1, 3), ".", substr(codelist[code], 4, nchar(codelist[code])))
+		} else {codelist[code]} # return code
+	}
+	return(codelist) # return list of codes
+}
 
 ###############################################################################
 
@@ -33,72 +33,7 @@ cohort.diabetestype2.raw <- dbGetQueryMap(con, "
 
 ## Data has been cleaned by SDRN, but still has weird values sometimes
 
-
-biomarkers <- c("creatinine_blood")
-
-concept_observation <- c("biochem-creatinine")
-
-min_limits <- c(20)
-
-max_limits <- c(2500)
-
-for (i in 1:length(biomarkers)) {
-	
-	print(biomarkers[i])
-	
-	clean_tablename <- paste0("clean_", biomarkers[i], "_medcodes")
-	
-	mysqlquery <- paste0("
-					SELECT o_observation.* 
-					FROM o_observation, o_concept_observation, o_person 
-					WHERE
-					o_person.date_of_birth < '2022-11-01' AND o_person.dm_type = 2 AND o_person.earliest_mention IS NOT NULL AND 
-					o_observation.serialno = o_person.serialno AND
-					o_observation.concept_id = o_concept_observation.uid AND 
-					o_concept_observation.path = '", concept_observation[i], "'")
-	
-	data <- dbGetQueryMap(con, mysqlquery) %>%
-			select(serialno, date, "testvalue" = num.value) %>%
-			drop_na(testvalue) %>%
-			filter(testvalue >= min_limits[i] & testvalue <= max_limits[i])
-	
-	assign(clean_tablename, data)
-	
-}
-
-
-clean_egfr_medcodes <- clean_creatinine_blood_medcodes %>%
-		inner_join(dbGetQueryMap(con, "
-										SELECT serialno, date_of_birth
-										FROM o_person 
-										WHERE date_of_birth < '2022-11-01' AND 
-										dm_type = 2 AND earliest_mention IS NOT NULL") %>%
-						select(serialno, "dob" = `date.of.birth`), by = c("serialno")) %>%
-		inner_join(dbGetQueryMap(con, "
-								SELECT serialno, gender
-								FROM o_person 
-								WHERE date_of_birth < '2022-11-01' AND 
-								dm_type = 2 AND earliest_mention IS NOT NULL"), by = c("serialno")) %>%
-		mutate(
-				age_at_creat = as.numeric(difftime(date, dob, units = "days"))/365.25,
-				sex = ifelse(gender==1, "male", ifelse(gender==2, "female", NA))
-		) %>%
-		select(-c(dob, gender)) %>%
-		## CKD epi 2021 egfr
-		mutate(
-				creatinine_mgdl = testvalue*0.0113,
-				ckd_epi_2021_egfr = ifelse(creatinine_mgdl<=0.7 & sex=="female", (142 * ((creatinine_mgdl/0.7)^-0.241) * (0.9938^age_at_creat) * 1.012),
-						ifelse(creatinine_mgdl>0.7 & sex=="female", (142 * ((creatinine_mgdl/0.7)^-1.2) * (0.9938^age_at_creat) * 1.012),
-								ifelse(creatinine_mgdl<=0.9 & sex=="male", (142 * ((creatinine_mgdl/0.9)^-0.302) * (0.9938^age_at_creat)),
-										ifelse(creatinine_mgdl>0.9 & sex=="male", (142 * ((creatinine_mgdl/0.9)^-1.2) * (0.9938^age_at_creat)), NA))))
-		) %>%
-		select(-c(creatinine_mgdl, testvalue, sex, age_at_creat)) %>%
-		rename(testvalue = ckd_epi_2021_egfr) %>%
-		drop_na(testvalue)
-
-
-## disconnect from database
-dbDisconnect(con)
+load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_clean_egfr_medcodes.RData")
 
 
 ###############################################################################
@@ -205,10 +140,6 @@ con <- dbConn("NDS_2023")
 
 comorbids <- c("ckd5_code")
 
-comorbidity_ICD10_table <- readRDS("/home/pcardoso/workspace/SDRN-Cohort-scripts/Codelists/Comorbidities/comorbidity_ICD10_table.rds")
-comorbidity_OPCS4_table <- readRDS("/home/pcardoso/workspace/SDRN-Cohort-scripts/Codelists/Comorbidities/comorbidity_OPCS4_table.rds")
-
-
 ###############################################################################
 
 # Pull out all raw code instancas
@@ -218,20 +149,24 @@ comorbidity_OPCS4_table <- readRDS("/home/pcardoso/workspace/SDRN-Cohort-scripts
 for (i in comorbids) {
 	
 	print(i)
+	codelist_name_icd10 <- paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Codelists/ICD10/exeter_icd10_", i, ".txt")
+	codelist_name_opcs4 <- paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Codelists/OPCS4/exeter_opcs4_", i, ".txt")
 	
-	if (length(comorbidity_ICD10_table[[i]]) >0) {
+	if (file.exists(codelist_name_icd10)) {
+		
+		codelist <- clean_codes(read.delim(codelist_name_icd10) %>%
+						select(-Term_description) %>%
+						unlist())
 		
 		raw_tablename <- paste0("raw_", i, "_icd10")
 		
 		mysqlquery <- paste0("
 						SELECT o_condition.* 
-						FROM o_condition, o_concept_condition, o_person 
+						FROM o_condition, o_concept_condition 
 						WHERE
-						o_person.date_of_birth < '2022-11-01' AND o_person.dm_type = 2 AND o_person.earliest_mention IS NOT NULL AND 
-						o_condition.serialno = o_person.serialno AND
 						o_concept_condition.name = 'icd10' AND o_concept_condition.uid = o_condition.concept_id AND
 						o_concept_condition.path LIKE 'smr%' AND o_concept_condition.path NOT LIKE '%causeofdeath%' AND
-						(", paste("o_condition.condition_code LIKE ", paste(paste("'", comorbidity_ICD10_table[[i]], "%'", sep = ""), collapse = " OR o_condition.condition_code LIKE ")), ")")
+						(", paste("o_condition.condition_code LIKE ", paste(paste("'", codelist, "%'", sep = ""), collapse = " OR o_condition.condition_code LIKE ")), ")")
 		
 		data <- dbGetQueryMap(con, mysqlquery)
 		
@@ -241,19 +176,21 @@ for (i in comorbids) {
 		
 	}
 	
-	if (length(comorbidity_OPCS4_table[[i]]) >0) {
+	if (file.exists(codelist_name_opcs4)) {
+		
+		codelist <- clean_codes(read.delim(codelist_name_opcs4) %>%
+						select(-Term_description) %>%
+						unlist())
 		
 		raw_tablename <- paste0("raw_", i, "_opcs4")
 		
 		mysqlquery <- paste0("
 						SELECT o_condition.* 
-						FROM o_condition, o_concept_condition, o_person 
+						FROM o_condition, o_concept_condition 
 						WHERE
-						o_person.date_of_birth < '2022-11-01' AND o_person.dm_type = 2 AND o_person.earliest_mention IS NOT NULL AND 
-						o_condition.serialno = o_person.serialno AND
 						o_concept_condition.name = 'opcs4' AND o_concept_condition.uid = o_condition.concept_id AND
 						o_concept_condition.path LIKE 'smr%' AND o_concept_condition.path NOT LIKE '%causeofdeath%' AND
-						(", paste("o_condition.condition_code LIKE ", paste(paste("'", comorbidity_OPCS4_table[[i]], "%'", sep = ""), collapse = " OR o_condition.condition_code LIKE ")), ")")
+						(", paste("o_condition.condition_code LIKE ", paste(paste("'", codelist, "%'", sep = ""), collapse = " OR o_condition.condition_code LIKE ")), ")")
 		
 		data <- dbGetQueryMap(con, mysqlquery)
 		
@@ -264,6 +201,10 @@ for (i in comorbids) {
 	}
 	
 }
+
+
+## disconnect from database
+dbDisconnect(con)
 
 
 ## Clean, find earliest date per person

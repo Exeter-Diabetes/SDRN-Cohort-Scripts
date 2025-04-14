@@ -1,9 +1,11 @@
 # Author: pcardoso
 ###############################################################################
 
-# Identify those with diabetes type 2, collect baseline biomarkers for combos
+# Collect baseline biomarkers for combos
 
 ###############################################################################
+
+rm(list=ls())
 
 # load libraries
 library(tidyverse)
@@ -11,18 +13,8 @@ library(tidyverse)
 
 ###############################################################################
 
-
-# Setup dataset with type 2 diabetes
-
 ## connection to database
 con <- dbConn("NDS_2023")
-## select patients with type 2 diabetes
-cohort.diabetestype2.raw <- dbGetQueryMap(con, "
-				SELECT serialno, date_of_birth, date_of_death, earliest_mention, dm_type, gender, ethnic
-				FROM o_person 
-				WHERE date_of_birth < '2022-11-01' AND 
-				dm_type = 2 AND earliest_mention IS NOT NULL")
-
 
 ###############################################################################
 
@@ -49,10 +41,8 @@ for (i in 1:length(biomarkers)) {
 	
 	mysqlquery <- paste0("
 				SELECT o_observation.* 
-				FROM o_observation, o_concept_observation, o_person 
+				FROM o_observation, o_concept_observation 
 				WHERE
-					o_person.date_of_birth < '2022-11-01' AND o_person.dm_type = 2 AND o_person.earliest_mention IS NOT NULL AND 
-					o_observation.serialno = o_person.serialno AND
 					o_observation.concept_id = o_concept_observation.uid AND 
 					o_concept_observation.path = '", concept_observation[i], "'")
 	
@@ -68,10 +58,8 @@ for (i in 1:length(biomarkers)) {
 
 clean_hba1c_medcodes <- dbGetQueryMap(con, "
 				SELECT o_observation.*
-				FROM o_observation, o_concept_observation, o_person
+				FROM o_observation, o_concept_observation
 				WHERE
-					o_person.date_of_birth < '2022-11-01' AND o_person.dm_type = 2 AND o_person.earliest_mention IS NOT NULL AND
-					o_observation.serialno = o_person.serialno AND
 					o_observation.concept_id = o_concept_observation.uid AND
 					o_concept_observation.path = 'biochem-hba1c'") %>%
 	select(serialno, date, "testvalue" = num.value) %>%
@@ -82,18 +70,14 @@ clean_hba1c_medcodes <- dbGetQueryMap(con, "
 	summarise(testvalue = mean(testvalue, na.rm = TRUE)) %>%
 	ungroup()
 
+
+# Get diabetes cohort
+load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/all_diabetes_cohort.RData")
+
+
 clean_egfr_medcodes <- clean_creatinine_blood_medcodes %>%
-		inner_join(dbGetQueryMap(con, "
-										SELECT serialno, date_of_birth
-										FROM o_person 
-										WHERE date_of_birth < '2022-11-01' AND 
-										dm_type = 2 AND earliest_mention IS NOT NULL") %>%
-						select(serialno, "dob" = `date.of.birth`), by = c("serialno")) %>%
-		inner_join(dbGetQueryMap(con, "
-								SELECT serialno, gender
-								FROM o_person 
-								WHERE date_of_birth < '2022-11-01' AND 
-								dm_type = 2 AND earliest_mention IS NOT NULL"), by = c("serialno")) %>%
+		inner_join(diabetes_cohort %>%
+						select(serialno, dob, gender), by = c("serialno")) %>%
 		mutate(
 			age_at_creat = as.numeric(difftime(date, dob, units = "days"))/365.25,
 			sex = ifelse(gender==1, "male", ifelse(gender==2, "female", NA))

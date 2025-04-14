@@ -5,23 +5,10 @@
 
 ###############################################################################
 
+rm(list=ls())
+
 # load libraries
 library(tidyverse)
-
-
-###############################################################################
-
-
-# Setup dataset with type 2 diabetes
-
-## connection to database
-con <- dbConn("NDS_2023")
-## select patients with type 2 diabetes
-cohort.diabetestype2.raw <- dbGetQueryMap(con, "
-				SELECT serialno, date_of_birth, date_of_death, earliest_mention, dm_type, gender, ethnic
-				FROM o_person 
-				WHERE date_of_birth < '2022-11-01' AND 
-				dm_type = 2 AND earliest_mention IS NOT NULL")
 
 
 ###############################################################################
@@ -35,14 +22,8 @@ today <- as.character(Sys.Date(), format="%Y%m%d")
 
 # Get handles to pre-existing data tables
 
-## Cohort and patients characteristics including Townsend scores
-diabetes_cohort <- cohort.diabetestype2.raw %>%
-		rename(
-			"dob" = "date.of.birth",
-			"death_date" = "date.of.death",
-			"dm_diag_date" = "earliest.mention"
-		)
-#townsend_score <- 
+## Get diabetes cohort
+load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/all_diabetes_cohort.RData")
 
 ## Drug info
 load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_drug_start_stop.RData")
@@ -71,7 +52,7 @@ load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_discontin
 load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_glycaemic_failure.RData")
 
 ## Death causes
-load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_death_causes.RData")
+load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/all_patid_death_causes.RData")
 
 
 ###############################################################################
@@ -119,8 +100,8 @@ all_diabetes_1stinstance <- all_diabetes_1stinstance %>%
 		inner_join((alcohol %>% select(-c(drug_class, drug_instance))), by = c("serialno", "dstartdate", "drug_substance")) %>%
 		left_join(death_causes, by = "serialno") %>%
 		mutate(
-			dstartdate_age = difftime(dstartdate, dob, units = "days")/365.25,
-			dstartdate_dm_dur = difftime(dstartdate, dm_diag_date, units = "days")/365.25
+			dstartdate_age = as.numeric(difftime(dstartdate, dob, units = "days"))/365.25,
+			dstartdate_dm_dur = as.numeric(difftime(dstartdate, dm_diag_date_all, units = "days"))/365.25
 #			hosp_admission_prev_year = ifelse(is.na(hosp_admission_prev_year), 0,
 #					ifelse(hosp_admission_prev_year==1, 1, NA)),
 #			hosp_admission_prev_year_count = ifelse(is.na(hosp_admission_prev_year_count), 0, hosp_admission_prev_year)
@@ -136,7 +117,7 @@ all_diabetes_1stinstance <- all_diabetes_1stinstance %>%
 # Check counts
 
 all_diabetes_1stinstance %>% nrow()
-#925665
+#926897
 
 all_diabetes_1stinstance %>% distinct(serialno) %>% nrow()
 #401998
@@ -167,7 +148,7 @@ all_diabetes_1stinstance %>% distinct(serialno) %>% nrow()
 
 ## Filter just type 2s
 t2d_1stinstance <- all_diabetes_1stinstance %>% 
-		filter(dm.type == 2)
+		filter(diabetes_type == "type 2")
 
 ### Check unique serial count
 t2d_1stinstance %>% distinct(serialno) %>% nrow()
@@ -182,11 +163,11 @@ save(t2d_1stinstance, file = paste0("/home/pcardoso/workspace/SDRN-Cohort-script
 
 ## Just T2s
 t2d_all_drug_periods <- all_diabetes %>%
-		filter(dm.type == 2) %>%
+		filter(diabetes_type == "type 2") %>%
 		select(serialno) %>%
 		inner_join(drug_start_stop, by = c("serialno"))
 
-save(t2d_all_drug_periods, file = paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Final_Datasets/mm_", today, "t2d_all_drug_periods.RData"))
+save(t2d_all_drug_periods, file = paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Final_Datasets/mm_", today, "_t2d_all_drug_periods.RData"))
 
 
 

@@ -1,9 +1,11 @@
 # Author: pcardoso
 ###############################################################################
 
-# Identify those with diabetes type 2, smoking
+# Collect smoking status for combos
 
 ###############################################################################
+
+rm(list=ls())
 
 # load libraries
 library(tidyverse)
@@ -11,18 +13,8 @@ library(tidyverse)
 
 ###############################################################################
 
-
-# Setup dataset with type 2 diabetes
-
 ## connection to database
 con <- dbConn("NDS_2023")
-## select patients with type 2 diabetes
-cohort.diabetestype2.raw <- dbGetQueryMap(con, "
-				SELECT serialno, date_of_birth, date_of_death, earliest_mention, dm_type, gender, ethnic
-				FROM o_person 
-				WHERE date_of_birth < '2022-11-01' AND 
-				dm_type = 2 AND earliest_mention IS NOT NULL")
-
 
 
 ###############################################################################
@@ -61,16 +53,19 @@ smoking_cat_table <- data.frame(
 
 raw_smoking_medcodes <- dbGetQueryMap(con, "
 				SELECT o_observation.serialno, o_observation.date, o_observation.str_value
-				FROM o_observation, o_person
+				FROM o_concept_observation, o_observation
 				WHERE 
-					date_of_birth < '2022-11-01' AND 
-					dm_type = 2 AND earliest_mention IS NOT NULL AND
-					o_observation.serialno = o_person.serialno AND
-					o_observation.concept_id = '1401'") %>%
+					o_observation.concept_id = o_concept_observation.uid AND
+					o_concept_observation.path = 'lifestyle-smoker'") %>%
 	left_join(
 			smoking_cat_table, by = c("str.value")
 	) %>%
 	select(-str.value)
+
+
+
+## disconnect from database
+dbDisconnect(con)
 
 
 # Clean: remove duplicated for serialno, date, categories

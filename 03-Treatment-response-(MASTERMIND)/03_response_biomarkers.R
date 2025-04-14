@@ -1,9 +1,14 @@
 # Author: pcardoso
 ###############################################################################
 
-# Identify those with diabetes type 2, collect response biomarkers for combos
+# Collect response biomarkers for combos
+# Each step checks if it can load the table, otherwise creates table, saves the table to directory, deletes the table
+## Save on loaded memory
 
 ###############################################################################
+
+rm(list=ls())
+gc()
 
 # load libraries
 library(tidyverse)
@@ -11,18 +16,8 @@ library(tidyverse)
 
 ###############################################################################
 
-
-# Setup dataset with type 2 diabetes
-
 ## connection to database
 con <- dbConn("NDS_2023")
-## select patients with type 2 diabetes
-cohort.diabetestype2.raw <- dbGetQueryMap(con, "
-				SELECT serialno, date_of_birth, date_of_death, earliest_mention, dm_type, gender, ethnic
-				FROM o_person 
-				WHERE date_of_birth < '2022-11-01' AND 
-				dm_type = 2 AND earliest_mention IS NOT NULL")
-
 
 ###############################################################################
 
@@ -46,70 +41,85 @@ for (i in 1:length(biomarkers)) {
 	print(biomarkers[i])
 	
 	clean_tablename <- paste0("clean_", biomarkers[i], "_medcodes")
+
+	# check if file exists, otherise run
+	file_name <- paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_", clean_tablename, ".RData")
+	if (!file.exists(file_name)) {
 	
-	mysqlquery <- paste0("
-					SELECT o_observation.* 
-					FROM o_observation, o_concept_observation, o_person 
-					WHERE
-					o_person.date_of_birth < '2022-11-01' AND o_person.dm_type = 2 AND o_person.earliest_mention IS NOT NULL AND 
-					o_observation.serialno = o_person.serialno AND
-					o_observation.concept_id = o_concept_observation.uid AND 
-					o_concept_observation.path = '", concept_observation[i], "'")
+		mysqlquery <- paste0("
+						SELECT o_observation.* 
+						FROM o_observation, o_concept_observation 
+						WHERE
+						o_observation.concept_id = o_concept_observation.uid AND 
+						o_concept_observation.path = '", concept_observation[i], "'")
+		
+		data <- dbGetQueryMap(con, mysqlquery) %>%
+				select(serialno, date, "testvalue" = num.value) %>%
+				drop_na(testvalue) %>%
+				filter(testvalue >= min_limits[i] & testvalue <= max_limits[i])
+		
+		assign(clean_tablename, data)
+		
+		do.call(save, list(clean_tablename, file = file_name))
+		
+		rm(list = c(clean_tablename, "data"))
+		
+	}
 	
-	data <- dbGetQueryMap(con, mysqlquery) %>%
-			select(serialno, date, "testvalue" = num.value) %>%
-			drop_na(testvalue) %>%
-			filter(testvalue >= min_limits[i] & testvalue <= max_limits[i])
-	
-	assign(clean_tablename, data)
 	
 }
 
+if (!file.exists("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_clean_hba1c_medcodes.RData")) {
+	clean_hba1c_medcodes <- dbGetQueryMap(con, "
+							SELECT o_observation.*
+							FROM o_observation, o_concept_observation
+							WHERE
+							o_observation.concept_id = o_concept_observation.uid AND
+							o_concept_observation.path = 'biochem-hba1c'") %>%
+			select(serialno, date, "testvalue" = num.value) %>%
+			drop_na(testvalue) %>%
+			mutate(testvalue = ifelse(testvalue<20, ((testvalue-2.152)/0.09148), testvalue)) %>%
+			filter(testvalue >= 20 & testvalue <= 195) %>%
+			group_by(serialno, date) %>%
+			summarise(testvalue = mean(testvalue, na.rm = TRUE)) %>%
+			ungroup()
+	
+	do.call(save, list("clean_hba1c_medcodes", file = "/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_clean_hba1c_medcodes.RData"))
+	
+	rm(list = "clean_hba1c_medcodes")
+}
 
-clean_hba1c_medcodes <- dbGetQueryMap(con, "
-						SELECT o_observation.*
-						FROM o_observation, o_concept_observation, o_person
-						WHERE
-						o_person.date_of_birth < '2022-11-01' AND o_person.dm_type = 2 AND o_person.earliest_mention IS NOT NULL AND
-						o_observation.serialno = o_person.serialno AND
-						o_observation.concept_id = o_concept_observation.uid AND
-						o_concept_observation.path = 'biochem-hba1c'") %>%
-		select(serialno, date, "testvalue" = num.value) %>%
-		drop_na(testvalue) %>%
-		mutate(testvalue = ifelse(testvalue<20, ((testvalue-2.152)/0.09148), testvalue)) %>%
-		filter(testvalue >= 20 & testvalue <= 195) %>%
-		group_by(serialno, date) %>%
-		summarise(testvalue = mean(testvalue, na.rm = TRUE)) %>%
-		ungroup()
 
-clean_egfr_medcodes <- clean_creatinine_blood_medcodes %>%
-		inner_join(dbGetQueryMap(con, "
-										SELECT serialno, date_of_birth
-										FROM o_person 
-										WHERE date_of_birth < '2022-11-01' AND 
-										dm_type = 2 AND earliest_mention IS NOT NULL") %>%
-						select(serialno, "dob" = `date.of.birth`), by = c("serialno")) %>%
-		inner_join(dbGetQueryMap(con, "
-								SELECT serialno, gender
-								FROM o_person 
-								WHERE date_of_birth < '2022-11-01' AND 
-								dm_type = 2 AND earliest_mention IS NOT NULL"), by = c("serialno")) %>%
-		mutate(
-				age_at_creat = as.numeric(difftime(date, dob, units = "days"))/365.25,
-				sex = ifelse(gender==1, "male", ifelse(gender==2, "female", NA))
-		) %>%
-		select(-c(dob, gender)) %>%
-		## CKD epi 2021 egfr
-		mutate(
-				creatinine_mgdl = testvalue*0.0113,
-				ckd_epi_2021_egfr = ifelse(creatinine_mgdl<=0.7 & sex=="female", (142 * ((creatinine_mgdl/0.7)^-0.241) * (0.9938^age_at_creat) * 1.012),
-						ifelse(creatinine_mgdl>0.7 & sex=="female", (142 * ((creatinine_mgdl/0.7)^-1.2) * (0.9938^age_at_creat) * 1.012),
-								ifelse(creatinine_mgdl<=0.9 & sex=="male", (142 * ((creatinine_mgdl/0.9)^-0.302) * (0.9938^age_at_creat)),
-										ifelse(creatinine_mgdl>0.9 & sex=="male", (142 * ((creatinine_mgdl/0.9)^-1.2) * (0.9938^age_at_creat)), NA))))
-		) %>%
-		select(-c(creatinine_mgdl, testvalue, sex, age_at_creat)) %>%
-		rename(testvalue = ckd_epi_2021_egfr) %>%
-		drop_na(testvalue)
+if (!file.exists("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_clean_egfr_medcodes.RData")) {
+	load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_clean_creatinine_blood_medcodes.RData")
+	
+	# Get diabetes cohort
+	load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/all_diabetes_cohort.RData")
+	
+	clean_egfr_medcodes <- clean_creatinine_blood_medcodes %>%
+			inner_join(diabetes_cohort %>%
+							select(serialno, dob, gender), by = c("serialno")) %>%
+			mutate(
+					age_at_creat = as.numeric(difftime(date, dob, units = "days"))/365.25,
+					sex = ifelse(gender==1, "male", ifelse(gender==2, "female", NA))
+			) %>%
+			select(-c(dob, gender)) %>%
+			## CKD epi 2021 egfr
+			mutate(
+					creatinine_mgdl = testvalue*0.0113,
+					ckd_epi_2021_egfr = ifelse(creatinine_mgdl<=0.7 & sex=="female", (142 * ((creatinine_mgdl/0.7)^-0.241) * (0.9938^age_at_creat) * 1.012),
+							ifelse(creatinine_mgdl>0.7 & sex=="female", (142 * ((creatinine_mgdl/0.7)^-1.2) * (0.9938^age_at_creat) * 1.012),
+									ifelse(creatinine_mgdl<=0.9 & sex=="male", (142 * ((creatinine_mgdl/0.9)^-0.302) * (0.9938^age_at_creat)),
+											ifelse(creatinine_mgdl>0.9 & sex=="male", (142 * ((creatinine_mgdl/0.9)^-1.2) * (0.9938^age_at_creat)), NA))))
+			) %>%
+			select(-c(creatinine_mgdl, testvalue, sex, age_at_creat)) %>%
+			rename(testvalue = ckd_epi_2021_egfr) %>%
+			drop_na(testvalue)
+	
+	do.call(save, list("clean_egfr_medcodes", file = "/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_clean_egfr_medcodes.RData"))
+	
+	rm(list = c("clean_egfr_medcodes", "clean_creatinine_blood_medcodes"))
+}
 
 
 ## disconnect from database
@@ -142,11 +152,21 @@ for (i in c(biomarkers, "hba1c")) {
 	clean_tablename <- paste0("clean_", i, "_medcodes")
 	drug_merge_tablename <- paste0("full_", i, "_drug_merge")
 	
-	data <- get(clean_tablename) %>%
-			inner_join(drug_start_dates, by = c("serialno")) %>%
-			mutate(drugdatediff = difftime(date, dstartdate, units = "days"))
+	file_name <- paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_", drug_merge_tablename, ".RData")
+	if (!file.exists(file_name)) {
 	
-	assign(drug_merge_tablename, data)
+		load(paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_", clean_tablename, ".RData"))
+		
+		data <- get(clean_tablename) %>%
+				inner_join(drug_start_dates, by = c("serialno")) %>%
+				mutate(drugdatediff = difftime(date, dstartdate, units = "days"))
+		
+		assign(drug_merge_tablename, data)
+		
+		do.call(save, list(drug_merge_tablename, file = file_name))
+		
+		rm(list = c(clean_tablename, drug_merge_tablename))
+	}
 	
 }
 
@@ -170,7 +190,12 @@ for (i in c(biomarkers, "hba1c")) {
 # Then combine with baseline values and find response
 ## Remove HbA1c responses where timeprevcombo<=61 days i.e. where change glucose-lowering meds less than 61 days before current drug initiation
 
+
 biomarkers <- c("weight", "bmi", "fastingglucose", "hdl", "triglyceride", "creatinine_blood", "ldl", "alt", "ast", "totalcholesterol", "dbp", "sbp", "acr", "hba1c", "egfr", "bilirubin", "haemoglobin", "pcr")
+
+
+# clear unused memory
+gc()
 
 
 # 6 month response
@@ -181,56 +206,67 @@ for (i in biomarkers) {
 	drug_merge_tablename <- paste0("full_", i, "_drug_merge")
 	post6m_table_name <- paste0("post6m_", i)
 	
-	data <- get(drug_merge_tablename) %>%
-			
-			filter(drug_instance==1) %>%
-			
-			mutate(
+	file_name <- paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_", post6m_table_name, ".RData")
+	if (!file.exists(file_name)) {
+		
+		load(paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_", drug_merge_tablename, ".RData"))
+		
+		data <- get(drug_merge_tablename) %>%
 				
-				minvaliddate6m = as.Date(dstartdate, origin = "1970-01-01") + as.difftime(91, unit = "days"),
-				minvaliddate6m = as.Date(minvaliddate6m, origin = "1970-01-01"),
+				filter(drug_instance==1) %>%
 				
-				maxtime6m = pmin(ifelse(is.na(timetoaddrem_class), 274, timetoaddrem_class),
-						ifelse(is.na(timetochange_class), 274, timetochange_class+91), 274, na.rm = TRUE),
-				
-				lastvaliddate6m = ifelse(maxtime6m<91, NA, as.Date(dstartdate, origin = "1970-01-01") + as.difftime(maxtime6m, units = "days")),
-				lastvaliddate6m = as.Date(lastvaliddate6m, origin = "1970-01-01")
+				mutate(
 					
-			) %>%
-			
-			filter(date>=minvaliddate6m) %>%
-			
-			filter(date<=lastvaliddate6m) %>%
-			
-			group_by(serialno, dstartdate, drug_substance) %>%
-			
-			
-			mutate(
-				interim_var_1 = 183-drugdatediff,
-				interim_var_2 = ifelse(interim_var_1<0, 0-interim_var_1, interim_var_1) # abs() function did not work due to running out of memory
-			) %>%
-			
-			mutate(min_timediff = min(interim_var_2, na.rm = TRUE)) %>%
-			
-			filter(interim_var_2 == min_timediff) %>%
-			
-			mutate(post_biomarker_6m=min(testvalue, na.rm = TRUE)) %>%
-			filter(post_biomarker_6m==testvalue) %>%
-			
-			rename(
-				post_biomarker_6mdate = date,
-				post_biomarker_6mdrugdiff = drugdatediff
-			) %>%
-			
-			arrange(post_biomarker_6mdrugdiff) %>%
-			filter(row_number()==1) %>%
-			
-			ungroup() %>%
-			
-			select(serialno, dstartdate, drug_class, drug_substance, post_biomarker_6m, post_biomarker_6mdate, post_biomarker_6mdrugdiff)
-	
-	assign(post6m_table_name, data)
-	
+					minvaliddate6m = as.Date(dstartdate, origin = "1970-01-01") + as.difftime(91, unit = "days"),
+					minvaliddate6m = as.Date(minvaliddate6m, origin = "1970-01-01"),
+					
+					maxtime6m = pmin(ifelse(is.na(timetoaddrem_class), 274, timetoaddrem_class),
+							ifelse(is.na(timetochange_class), 274, timetochange_class+91), 274, na.rm = TRUE),
+					
+					lastvaliddate6m = ifelse(maxtime6m<91, NA, as.Date(dstartdate, origin = "1970-01-01") + as.difftime(maxtime6m, units = "days")),
+					lastvaliddate6m = as.Date(lastvaliddate6m, origin = "1970-01-01")
+						
+				) %>%
+				
+				filter(date>=minvaliddate6m) %>%
+				
+				filter(date<=lastvaliddate6m)
+		
+		data <- data %>%
+				
+				group_by(serialno, dstartdate, drug_substance) %>%
+				
+				
+				mutate(
+					interim_var_1 = 183-drugdatediff,
+					interim_var_2 = ifelse(interim_var_1<0, 0-interim_var_1, interim_var_1) # abs() function did not work due to running out of memory
+				) %>%
+				
+				mutate(min_timediff = min(interim_var_2, na.rm = TRUE)) %>%
+				
+				filter(interim_var_2 == min_timediff) %>%
+				
+				mutate(post_biomarker_6m=min(testvalue, na.rm = TRUE)) %>%
+				filter(post_biomarker_6m==testvalue) %>%
+				
+				rename(
+					post_biomarker_6mdate = date,
+					post_biomarker_6mdrugdiff = drugdatediff
+				) %>%
+				
+				arrange(post_biomarker_6mdrugdiff) %>%
+				filter(row_number()==1) %>%
+				
+				ungroup() %>%
+				
+				select(serialno, dstartdate, drug_class, drug_substance, post_biomarker_6m, post_biomarker_6mdate, post_biomarker_6mdrugdiff)
+		
+		assign(post6m_table_name, data)
+		
+		do.call(save, list(post6m_table_name, file = file_name))
+		
+		rm(list = c(drug_merge_tablename, post6m_table_name))
+	}
 }
 
 
@@ -242,55 +278,66 @@ for (i in biomarkers) {
 	drug_merge_tablename <- paste0("full_", i, "_drug_merge")
 	post12m_table_name <- paste0("post12m_", i)
 	
-	data <- get(drug_merge_tablename) %>%
-			
-			filter(drug_instance==1) %>%
-			
-			mutate(
+	file_name <- paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_", post12m_table_name, ".RData")
+	if (!file.exists(file_name)) {
+		
+		load(paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_", drug_merge_tablename, ".RData"))
+		
+		data <- get(drug_merge_tablename) %>%
 				
-				minvaliddate12m = as.Date(dstartdate, origin = "1970-01-01") + as.difftime(274, unit = "days"),
-				minvaliddate12m = as.Date(minvaliddate12m, origin = "1970-01-01"),
+				filter(drug_instance==1) %>%
 				
-				maxtime12m = pmin(ifelse(is.na(timetoaddrem_class), 457, timetoaddrem_class),
-						ifelse(is.na(timetochange_class), 457, timetochange_class+91), 457, na.rm = TRUE),
-				
-				lastvaliddate12m = ifelse(maxtime12m<274, NA, as.Date(dstartdate, origin = "1970-01-01") + as.difftime(maxtime12m, units = "days")),
-				lastvaliddate12m = as.Date(lastvaliddate12m, origin = "1970-01-01")
+				mutate(
 					
-			) %>%
-			
-			filter(date>=minvaliddate12m) %>%
-			filter(date<=lastvaliddate12m) %>%
-			
-			group_by(serialno, dstartdate, drug_substance) %>%
-			
-			
-			mutate(
-				interim_var_1 = 365-drugdatediff,
-				interim_var_2 = ifelse(interim_var_1<0, 0-interim_var_1, interim_var_1) # abs() function did not work due to running out of memory
-			) %>%
-			
-			mutate(min_timediff = min(interim_var_2, na.rm = TRUE)) %>%
-			
-			filter(interim_var_2 == min_timediff) %>%
-			
-			mutate(post_biomarker_12m=min(testvalue, na.rm = TRUE)) %>%
-			filter(post_biomarker_12m==testvalue) %>%
-			
-			rename(
-				post_biomarker_12mdate = date,
-				post_biomarker_12mdrugdiff = drugdatediff
-			) %>%
-			
-			arrange(post_biomarker_12mdrugdiff) %>%
-			filter(row_number()==1) %>%
-			
-			ungroup() %>%
-			
-			select(serialno, dstartdate, drug_class, drug_substance, post_biomarker_12m, post_biomarker_12mdate, post_biomarker_12mdrugdiff)
-	
-	assign(post12m_table_name, data)
-	
+					minvaliddate12m = as.Date(dstartdate, origin = "1970-01-01") + as.difftime(274, unit = "days"),
+					minvaliddate12m = as.Date(minvaliddate12m, origin = "1970-01-01"),
+					
+					maxtime12m = pmin(ifelse(is.na(timetoaddrem_class), 457, timetoaddrem_class),
+							ifelse(is.na(timetochange_class), 457, timetochange_class+91), 457, na.rm = TRUE),
+					
+					lastvaliddate12m = ifelse(maxtime12m<274, NA, as.Date(dstartdate, origin = "1970-01-01") + as.difftime(maxtime12m, units = "days")),
+					lastvaliddate12m = as.Date(lastvaliddate12m, origin = "1970-01-01")
+						
+				) %>%
+				
+				filter(date>=minvaliddate12m) %>%
+				filter(date<=lastvaliddate12m)
+		
+		data <- data %>%
+				
+				group_by(serialno, dstartdate, drug_substance) %>%
+				
+				
+				mutate(
+					interim_var_1 = 365-drugdatediff,
+					interim_var_2 = ifelse(interim_var_1<0, 0-interim_var_1, interim_var_1) # abs() function did not work due to running out of memory
+				) %>%
+				
+				mutate(min_timediff = min(interim_var_2, na.rm = TRUE)) %>%
+				
+				filter(interim_var_2 == min_timediff) %>%
+				
+				mutate(post_biomarker_12m=min(testvalue, na.rm = TRUE)) %>%
+				filter(post_biomarker_12m==testvalue) %>%
+				
+				rename(
+					post_biomarker_12mdate = date,
+					post_biomarker_12mdrugdiff = drugdatediff
+				) %>%
+				
+				arrange(post_biomarker_12mdrugdiff) %>%
+				filter(row_number()==1) %>%
+				
+				ungroup() %>%
+				
+				select(serialno, dstartdate, drug_class, drug_substance, post_biomarker_12m, post_biomarker_12mdate, post_biomarker_12mdrugdiff)
+		
+		assign(post12m_table_name, data)
+		
+		do.call(save, list(post12m_table_name, file = file_name))
+		
+		rm(list = c(drug_merge_tablename, post12m_table_name))
+	}
 }
 
 
@@ -310,8 +357,11 @@ for (i in biomarkers) {
 	
 	print(i)
 	
-	post6m_table <- get(paste0("post6m_", i))
-	post12m_table <- get(paste0("post12m_", i))
+	post6m_table <- paste0("post6m_", i)
+	post12m_table <- paste0("post12m_", i)
+	
+	load(paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_", post6m_table, ".RData"))
+	load(paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_", post12m_table, ".RData"))
 	
 	pre_biomarker_variable <- paste0("pre", i)
 	pre_biomarker_date_variable <- paste0("pre", i, "date")
@@ -327,8 +377,8 @@ for (i in biomarkers) {
 	biomarker_12m_response_variable <- paste0(i, "resp12m")
 	
 	response_biomarkers <- response_biomarkers %>%
-			left_join((post6m_table %>% select(-drug_class)), by = c("serialno", "dstartdate", "drug_substance")) %>%
-			left_join((post12m_table %>% select(-drug_class)), by = c("serialno", "dstartdate", "drug_substance"))
+			left_join((get(post6m_table) %>% select(-drug_class)), by = c("serialno", "dstartdate", "drug_substance")) %>%
+			left_join((get(post12m_table) %>% select(-drug_class)), by = c("serialno", "dstartdate", "drug_substance"))
 	
 	if (i=="hba1c") {
 		
@@ -365,6 +415,7 @@ for (i in biomarkers) {
 				{{post_12m_biomarker_drugdiff_variable}}:=post_biomarker_12mdrugdiff
 			)
 		
+	rm(list = c(post6m_table, post12m_table))
 	
 }
 
@@ -375,6 +426,7 @@ for (i in biomarkers) {
 ## eGFR
 
 ### Add in next eGFR measurement
+load(paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_clean_egfr_medcodes.RData"))
 egfr_long <- clean_egfr_medcodes
 
 next_egfr <- baseline_biomarkers %>%
@@ -424,6 +476,7 @@ egfr50 <- baseline_biomarkers %>%
 ## ACR
 
 ### Add in whether baseline microalbuminuria is confirmed by previous or next measurement
+load(paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_clean_acr_medcodes.RData"))
 acr_long <- clean_acr_medcodes %>%
 		group_by(serialno, date) %>%
 		mutate(count=n()) %>%

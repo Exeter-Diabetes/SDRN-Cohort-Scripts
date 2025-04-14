@@ -1,28 +1,34 @@
 # Author: pcardoso
 ###############################################################################
 
-# Identify those with diabetes type 2, collect comorbidities for combos
+# Collect comorbidities for combos
 
 ###############################################################################
+
+rm(list=ls())
 
 # load libraries
 library(tidyverse)
 
+# function
+## 'clean_codes' ensures the 3rd and 4th characters are separated by a dot "." (SDRN necessity)
+### 'codelist' list of codes for a particular comorbidity
+clean_codes <- function(codelist) {
+	# iterate through codelist
+	for (code in 1:length(codelist)) {
+		# if code >3 characters and 4th character is not a dot "."
+		if (nchar(codelist[code]) > 3 && substr(codelist[code], 4, 4) != ".") {
+			# add a dot after the 3rd character
+			codelist[code] <- paste0(substr(codelist[code], 1, 3), ".", substr(codelist[code], 4, nchar(codelist[code])))
+		} else {codelist[code]} # return code
+	}
+	return(codelist) # return list of codes
+}
 
 ###############################################################################
 
-
-# Setup dataset with type 2 diabetes
-
 ## connection to database
 con <- dbConn("NDS_2023")
-## select patients with type 2 diabetes
-cohort.diabetestype2.raw <- dbGetQueryMap(con, "
-				SELECT serialno, date_of_birth, date_of_death, earliest_mention, dm_type, gender, ethnic
-				FROM o_person 
-				WHERE date_of_birth < '2022-11-01' AND 
-				dm_type = 2 AND earliest_mention IS NOT NULL")
-
 
 ###############################################################################
 
@@ -54,9 +60,6 @@ comorbids <- c(
 		"vitreoushemorrhage", "volume_depletion"
 )
 
-comorbidity_ICD10_table <- readRDS("/home/pcardoso/workspace/SDRN-Cohort-scripts/Codelists/Comorbidities/comorbidity_ICD10_table.rds")
-comorbidity_OPCS4_table <- readRDS("/home/pcardoso/workspace/SDRN-Cohort-scripts/Codelists/Comorbidities/comorbidity_OPCS4_table.rds")
-
 ###############################################################################
 
 # Pull out all raw code instancas
@@ -66,20 +69,24 @@ comorbidity_OPCS4_table <- readRDS("/home/pcardoso/workspace/SDRN-Cohort-scripts
 for (i in comorbids) {
 	
 	print(i)
+	codelist_name_icd10 <- paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Codelists/ICD10/exeter_icd10_", i, ".txt")
+	codelist_name_opcs4 <- paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Codelists/OPCS4/exeter_opcs4_", i, ".txt")
 	
-	if (length(comorbidity_ICD10_table[[i]]) >0) {
+	if (file.exists(codelist_name_icd10)) {
+		
+		codelist <- clean_codes(read.delim(codelist_name_icd10) %>%
+				select(-Term_description) %>%
+				unlist())
 		
 		raw_tablename <- paste0("raw_", i, "_icd10")
 		
 		mysqlquery <- paste0("
 						SELECT o_condition.* 
-						FROM o_condition, o_concept_condition, o_person 
+						FROM o_condition, o_concept_condition 
 						WHERE
-						o_person.date_of_birth < '2022-11-01' AND o_person.dm_type = 2 AND o_person.earliest_mention IS NOT NULL AND 
-						o_condition.serialno = o_person.serialno AND
 						o_concept_condition.name = 'icd10' AND o_concept_condition.uid = o_condition.concept_id AND
 						o_concept_condition.path LIKE 'smr%' AND o_concept_condition.path NOT LIKE '%causeofdeath%' AND
-						(", paste("o_condition.condition_code LIKE ", paste(paste("'", comorbidity_ICD10_table[[i]], "%'", sep = ""), collapse = " OR o_condition.condition_code LIKE ")), ")")
+						(", paste("o_condition.condition_code LIKE ", paste(paste("'", codelist, "%'", sep = ""), collapse = " OR o_condition.condition_code LIKE ")), ")")
 		
 		data <- dbGetQueryMap(con, mysqlquery)
 		
@@ -89,19 +96,21 @@ for (i in comorbids) {
 		
 	}
 	
-	if (length(comorbidity_OPCS4_table[[i]]) >0) {
+	if (file.exists(codelist_name_opcs4)) {
+		
+		codelist <- clean_codes(read.delim(codelist_name_opcs4) %>%
+						select(-Term_description) %>%
+						unlist())
 		
 		raw_tablename <- paste0("raw_", i, "_opcs4")
 		
 		mysqlquery <- paste0("
 						SELECT o_condition.* 
-						FROM o_condition, o_concept_condition, o_person 
+						FROM o_condition, o_concept_condition 
 						WHERE
-						o_person.date_of_birth < '2022-11-01' AND o_person.dm_type = 2 AND o_person.earliest_mention IS NOT NULL AND 
-						o_condition.serialno = o_person.serialno AND
 						o_concept_condition.name = 'opcs4' AND o_concept_condition.uid = o_condition.concept_id AND
 						o_concept_condition.path LIKE 'smr%' AND o_concept_condition.path NOT LIKE '%causeofdeath%' AND
-						(", paste("o_condition.condition_code LIKE ", paste(paste("'", comorbidity_OPCS4_table[[i]], "%'", sep = ""), collapse = " OR o_condition.condition_code LIKE ")), ")")
+						(", paste("o_condition.condition_code LIKE ", paste(paste("'", codelist, "%'", sep = ""), collapse = " OR o_condition.condition_code LIKE ")), ")")
 		
 		data <- dbGetQueryMap(con, mysqlquery)
 		
@@ -117,35 +126,41 @@ for (i in comorbids) {
 # Make new primary cause hospitalisation for heart failure, incident MI, and incident stroke comorbidities
 # This uses SMR01 (hospital inpatient) diag1 as the main cause for hospitalisation
 
+codelist_primary_hff <- clean_codes(read.delim("/home/pcardoso/workspace/SDRN-Cohort-scripts/Codelists/ICD10/exeter_icd10_heartfailure.txt") %>%
+				select(-Term_description) %>%
+				unlist())
+
 raw_primary_hhf_icd10 <- dbGetQueryMap(con, paste0("
 					SELECT o_condition.* 
-						FROM o_condition, o_concept_condition, o_person 
+						FROM o_condition, o_concept_condition 
 						WHERE
-						o_person.date_of_birth < '2022-11-01' AND o_person.dm_type = 2 AND o_person.earliest_mention IS NOT NULL AND 
-						o_condition.serialno = o_person.serialno AND
 						o_concept_condition.name = 'icd10' AND o_concept_condition.uid = o_condition.concept_id AND
 						o_concept_condition.path LIKE 'smr01-diag1%' AND o_concept_condition.path NOT LIKE '%causeofdeath%' AND
-						(", paste("o_condition.condition_code LIKE ", paste(paste("'", comorbidity_ICD10_table[["heartfailure"]], "%'", sep = ""), collapse = " OR o_condition.condition_code LIKE ")), ")"))
-		
+						(", paste("o_condition.condition_code LIKE ", paste(paste("'", codelist_primary_hff, "%'", sep = ""), collapse = " OR o_condition.condition_code LIKE ")), ")"))
+
+codelist_incident_mi <- clean_codes(read.delim("/home/pcardoso/workspace/SDRN-Cohort-scripts/Codelists/ICD10/exeter_icd10_incident_mi.txt") %>%
+				select(-Term_description) %>%
+				unlist())
+
 raw_primary_incident_mi_icd10 <- dbGetQueryMap(con, paste0("
 					SELECT o_condition.* 
-						FROM o_condition, o_concept_condition, o_person 
+						FROM o_condition, o_concept_condition 
 						WHERE
-						o_person.date_of_birth < '2022-11-01' AND o_person.dm_type = 2 AND o_person.earliest_mention IS NOT NULL AND 
-						o_condition.serialno = o_person.serialno AND
 						o_concept_condition.name = 'icd10' AND o_concept_condition.uid = o_condition.concept_id AND
 						o_concept_condition.path LIKE 'smr01-diag1%' AND o_concept_condition.path NOT LIKE '%causeofdeath%' AND
-						(", paste("o_condition.condition_code LIKE ", paste(paste("'", comorbidity_ICD10_table[["incident_mi"]], "%'", sep = ""), collapse = " OR o_condition.condition_code LIKE ")), ")"))
-		
+						(", paste("o_condition.condition_code LIKE ", paste(paste("'", codelist_incident_mi, "%'", sep = ""), collapse = " OR o_condition.condition_code LIKE ")), ")"))
+
+codelist_incident_stroke <- clean_codes(read.delim("/home/pcardoso/workspace/SDRN-Cohort-scripts/Codelists/ICD10/exeter_icd10_incident_stroke.txt") %>%
+				select(-Term_description) %>%
+				unlist())
+
 raw_primary_incident_stroke_icd10 <- dbGetQueryMap(con, paste0("
 					SELECT o_condition.* 
-						FROM o_condition, o_concept_condition, o_person 
+						FROM o_condition, o_concept_condition 
 						WHERE
-						o_person.date_of_birth < '2022-11-01' AND o_person.dm_type = 2 AND o_person.earliest_mention IS NOT NULL AND 
-						o_condition.serialno = o_person.serialno AND
 						o_concept_condition.name = 'icd10' AND o_concept_condition.uid = o_condition.concept_id AND
 						o_concept_condition.path LIKE 'smr01-diag1%' AND o_concept_condition.path NOT LIKE '%causeofdeath%' AND
-						(", paste("o_condition.condition_code LIKE ", paste(paste("'", comorbidity_ICD10_table[["incident_stroke"]], "%'", sep = ""), collapse = " OR o_condition.condition_code LIKE ")), ")"))
+						(", paste("o_condition.condition_code LIKE ", paste(paste("'", codelist_incident_stroke, "%'", sep = ""), collapse = " OR o_condition.condition_code LIKE ")), ")"))
 		
 comorbids <- c("primary_hhf", "primary_incident_mi", "primary_incident_stroke", comorbids)
 
@@ -165,6 +180,11 @@ comorbids <- c("primary_hhf", "primary_incident_mi", "primary_incident_stroke", 
 #raw_fh_diabetes_negative_medcodes <- raw_fh_diabetes_medcodes %>% fitler(fh_diabetes_cat=="negative")
 #comorbids <- setdiff(comorbids, "fh_diabetes")
 #comorbids <- c("fh_diabetes_positive", "fh_diabetes_negative", comorbids)
+
+
+
+## disconnect from database
+dbDisconnect(con)
 
 
 
