@@ -16,12 +16,15 @@ graph TD;
     A-->|"comorbidities <br> (requires index date)"|F["<b>Comorbidities</b> <br> at 01/11/2022"]
     A-->|"smoking <br> (requires index date)"|G["<b>Smoking status</b> <br> at 01/11/2022"]
     A-->|"alcohol <br> (requires index date)"|H["<b>Alcohol status</b> <br> at 01/11/2022"]
+    A --> |"all_death_causes"| I["<b>Death causes</b> <br> for all patients"]
+    
     B-->|"final_merge"|J["<b>Final cohort dataset</b>"]
     C-->|"final_merge"|J  
     E-->|"final_merge"|J
     F-->|"final_merge"|J
     G-->|"final_merge"|J
     H-->|"final_merge"|J  
+    I-->|"final_merge"|J
 ```
 \*SIMD=Scottish Index of Multiple Deprivation; 'static' using the 2016 data. SIMD is coded as 1=most deprived, 10=least deprived. This differs from England deprivation score, where 1=least deprived, 10=most deprived. Two variables have been created: simd_decile (scottish version), imd_decile (translation of scottish to english).
 
