@@ -23,7 +23,8 @@ con <- dbConn("NDS_2023")
 
 smoking_cat_table <- data.frame(
 		str.value = c("LRA-CTN-10", "LRA-CTN-11", "LRA-CTN-12", "LRA-CTN-13", "LRA-CTN-23", "LRA-CTN-97","LRA-CTN-99"),
-		smoking_cat = c("Non-smoker", "Ex-smoker", "Non-smoker", "Active smoker", "Active smoker", "Non-smoker", "Non-smoker")
+		smoking_cat = c("Non-smoker", "Ex-smoker", "Non-smoker", "Active smoker", "Active smoker", "Non-smoker", "Non-smoker"),
+		qrisk2_smoking_cat = c(0, 1, 0, 2, 2, 0, 0)
 )
 
 
@@ -147,12 +148,49 @@ smoking_cat <- diabetes_cohort %>%
 
 # Work out smoking status from QRISK2 algorithm
 
-#
-# Not coded
-#
-#
+## connection to database
+con <- dbConn("NDS_2023")
 
+# number of cigs a day
+raw_cigs_day_medcodes <- dbGetQueryMap(con, "
+						SELECT o_observation.serialno, o_observation.date, o_observation.num_value
+						FROM o_concept_observation, o_observation
+						WHERE 
+						o_observation.concept_id = o_concept_observation.uid AND
+						o_concept_observation.path = 'lifestyle-cigs_day'") %>%
+		rename("testvalue" = "num.value") %>%
+		drop_na()
 
+## disconnect from database
+dbDisconnect(con)
+
+# Only keep codes within 5 years, keep those on most recent date, and convert to QRISK2 categories using testvalues
+qrisk2_smoking_cat <- pre_index_date_smoking_codes %>%
+		left_join(raw_cigs_day_medcodes, by = c("serialno", "date")) %>%
+		filter(difftime(index_date, date, units = "days") <= 1826) %>%
+		group_by(serialno) %>%
+		filter(date == max(date, na.rm = TRUE)) %>%
+		ungroup() %>%
+		mutate(
+				qrisk2_smoking = ifelse(is.na(testvalue) | qrisk2_smoking_cat == 1, qrisk2_smoking_cat, 
+						ifelse(testvalue < 10, 2L,
+								ifelse(testvalue<20, 3L, 4L)))
+		)
+
+## If both non- and ex-smoker, use ex-smoker
+## If conflicting categories (non- and active- / ex- and active-), use minimum
+qrisk2_smoking_cat <- qrisk2_smoking_cat %>%
+		mutate(fill = TRUE, qrisk2_smoking_cat = paste0("cat_", qrisk2_smoking)) %>%
+		distinct(serialno, qrisk2_smoking_cat, fill) %>%
+		pivot_wider(id_cols = serialno, names_from = qrisk2_smoking_cat, values_from = fill, values_fill = list(fill = FALSE)) %>%
+		mutate(
+				qrisk2_smoking_cat = ifelse(cat_1 == 1, 1L,
+						ifelse(cat_0 == 1 & cat_1 == 0, 0L,
+								ifelse(cat_0 == 0 & cat_1 == 0 & cat_2 == 1, 2L,
+										ifelse(cat_0 == 0 & cat_1 == 0 & cat_2 == 0 & cat_3 == 1, 3L,
+												ifelse(cat_0 == 0 & cat_1 == 0 & cat_2 == 0 & cat_3 == 0 & cat_4 == 1, 4L, NA)))))
+		) %>%
+		select(serialno, qrisk2_smoking_cat)
 
 
 ###############################################################################
@@ -161,7 +199,17 @@ smoking_cat <- diabetes_cohort %>%
 
 smoking <- diabetes_cohort %>%
 		select(serialno) %>%
-		left_join(smoking_cat, by = c("serialno"))
+		left_join(smoking_cat, by = c("serialno")) %>%
+		left_join(qrisk2_smoking_cat, by = c("serialno")) %>%
+		mutate(
+				qrisk2_smoking_cat_uncoded = case_when(
+						qrisk2_smoking_cat == 0 ~ "Non-smoker",
+						qrisk2_smoking_cat == 1 ~ "Ex-smoker",
+						qrisk2_smoking_cat == 2 ~ "Light smoker",
+						qrisk2_smoking_cat == 3 ~ "Moderate smoker",
+						qrisk2_smoking_cat == 4 ~ "Heavy smoker"
+				)
+		)
 
 
 save(smoking, file = "/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/at_diag_smoking.RData")

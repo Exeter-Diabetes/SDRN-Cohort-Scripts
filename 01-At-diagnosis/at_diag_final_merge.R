@@ -36,7 +36,7 @@ load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/at_diag_como
 #load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/at_diag_efi.RData")
 
 ## Non-diabetes med
-#load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/at_diag_non_diabetes_meds.RData")
+load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/at_diag_non_diabetes_meds.RData")
 
 ## Smoking status
 load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/at_diag_smoking.RData")
@@ -60,15 +60,11 @@ final_merge <- diabetes_cohort %>%
 #		left_join((efi %>% select(-index_date)), by = "serialno") %>%
 		left_join(smoking, by = "serialno") %>%
 		left_join(alcohol, by = "serialno") %>%
+		left_join((non_diabetes_meds %>% select(-index_date)), by = "serialno") %>%
 		left_join(death_causes, by = "serialno")
 
 at_diag_final <- final_merge
 
 save(at_diag_final, file = paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Final_Datasets/at_diag_final_", today, ".RData"))
-
-
-
-
-
 
 

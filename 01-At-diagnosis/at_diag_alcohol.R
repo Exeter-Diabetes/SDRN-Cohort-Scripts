@@ -80,10 +80,10 @@ harmful_drinker_ever <- pre_index_date_alcohol_codes %>%
 ### If different categories on same day, use highest
 most_recent_code <- pre_index_date_alcohol_codes %>%
 		mutate(
-			alcohol_cat_numeric = ifelse(alcohol_cat=="AlcoholConsumptionLevel0", 0,
-					ifelse(alcohol_cat=="AlcoholConsumptionLevel1", 1,
-							ifelse(alcohol_cat=="AlcoholConsumptionLevel2", 2,
-									ifelse(alcohol_cat=="AlcoholConsumptionLevel3", 3, NA))))
+				alcohol_cat_numeric = ifelse(alcohol_cat=="AlcoholConsumptionLevel0", 0,
+						ifelse(alcohol_cat=="AlcoholConsumptionLevel1", 1,
+								ifelse(alcohol_cat=="AlcoholConsumptionLevel2", 2,
+										ifelse(alcohol_cat=="AlcoholConsumptionLevel3", 3, NA))))
 		) %>%
 		group_by(serialno) %>%
 		filter(date==max(date, na.rm = TRUE)) %>%
@@ -95,14 +95,14 @@ alcohol_cat <- index_dates %>%
 		left_join(harmful_drinker_ever, by = "serialno") %>%
 		left_join(most_recent_code, by = "serialno") %>%
 		mutate(
-			alcohol_cat_numeric=ifelse(!is.na(harmful_drinker_ever) & harmful_drinker_ever==1, 3, alcohol_cat_numeric),
-			
-			alcohol_cat=case_when(
-				alcohol_cat_numeric==0 ~ "None",
-				alcohol_cat_numeric==1 ~ "Within limits",
-				alcohol_cat_numeric==2 ~ "Excess",
-				alcohol_cat_numeric==3 ~ "Harmful"
-			)
+				alcohol_cat_numeric=ifelse(!is.na(harmful_drinker_ever) & harmful_drinker_ever==1, 3, alcohol_cat_numeric),
+				
+				alcohol_cat=case_when(
+						alcohol_cat_numeric==0 ~ "None",
+						alcohol_cat_numeric==1 ~ "Within limits",
+						alcohol_cat_numeric==2 ~ "Excess",
+						alcohol_cat_numeric==3 ~ "Harmful"
+				)
 		) %>%
 		select(serialno, alcohol_cat)
 

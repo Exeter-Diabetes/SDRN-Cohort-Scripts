@@ -352,23 +352,23 @@ index_dates <- diabetes_cohort %>%
 ckd_stage_drug_merge <- index_dates %>%
 		left_join(ckd_stages_from_algorithm, by = "serialno") %>%
 		mutate(
-			preckdstage=ifelse(!is.na(stage_5) & difftime(stage_5, index_date, units = "days")<=7, "stage_5",
-					ifelse(!is.na(stage_4) & difftime(stage_4, index_date, units = "days")<=7, "stage_4",
-							ifelse(!is.na(stage_3b) & difftime(stage_3b, index_date, units = "days")<=7, "stage_3b",
-									ifelse(!is.na(stage_3a) & difftime(stage_3a, index_date, units = "days")<=7, "stage_3a",
-											ifelse(!is.na(stage_2) & difftime(stage_2, index_date, units = "days")<=7, "stage_2",
-													ifelse(!is.na(stage_1) & difftime(stage_1, index_date, units = "days")<=7, "stage_1", NA)))))),
-			
-			preckdstagedate=ifelse(preckdstage=="stage_5", stage_5,
-					ifelse(preckdstage=="stage_4", stage_4,
-							ifelse(preckdstage=="stage_3b", stage_3b,
-									ifelse(preckdstage=="stage_3a", stage_3a,
-											ifelse(preckdstage=="stage_2", stage_2,
-													ifelse(preckdstage=="stage_1", stage_1, NA)))))),
-			preckdstagedate=as.Date(preckdstagedate, origin = "1970-01-01"),
-			
-			preckdstagedatediff=as.numeric(difftime(preckdstagedate, index_date, units= "days"))
-
+				preckdstage=ifelse(!is.na(stage_5) & difftime(stage_5, index_date, units = "days")<=7, "stage_5",
+						ifelse(!is.na(stage_4) & difftime(stage_4, index_date, units = "days")<=7, "stage_4",
+								ifelse(!is.na(stage_3b) & difftime(stage_3b, index_date, units = "days")<=7, "stage_3b",
+										ifelse(!is.na(stage_3a) & difftime(stage_3a, index_date, units = "days")<=7, "stage_3a",
+												ifelse(!is.na(stage_2) & difftime(stage_2, index_date, units = "days")<=7, "stage_2",
+														ifelse(!is.na(stage_1) & difftime(stage_1, index_date, units = "days")<=7, "stage_1", NA)))))),
+				
+				preckdstagedate=ifelse(preckdstage=="stage_5", stage_5,
+						ifelse(preckdstage=="stage_4", stage_4,
+								ifelse(preckdstage=="stage_3b", stage_3b,
+										ifelse(preckdstage=="stage_3a", stage_3a,
+												ifelse(preckdstage=="stage_2", stage_2,
+														ifelse(preckdstage=="stage_1", stage_1, NA)))))),
+				preckdstagedate=as.Date(preckdstagedate, origin = "1970-01-01"),
+				
+				preckdstagedatediff=as.numeric(difftime(preckdstagedate, index_date, units= "days"))
+		
 		) %>%
 		select(serialno, preckdstage, preckdstagedate, preckdstagedatediff)
 

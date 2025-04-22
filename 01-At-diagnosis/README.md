@@ -1,6 +1,6 @@
 # At-diagnosis cohort
 
-The 'at-diagnosis' cohort (n=XX) consists of all those in the diabetes cohort (see [flow diagram](https://github.com/Exeter-Diabetes/SDRN-Cohort-Scripts/blob/main/README.md#introduction)). The cohort dataset includes biomarker/comorbidity/sociodemographic info at diabetes diagnosis date.
+The 'at-diagnosis' cohort (n=558,892) consists of all those in the diabetes cohort (see [flow diagram](https://github.com/Exeter-Diabetes/SDRN-Cohort-Scripts/blob/main/README.md#introduction)). The cohort dataset includes biomarker/comorbidity/sociodemographic info at diabetes diagnosis date.
 
 &nbsp;
 
@@ -32,6 +32,10 @@ graph TD;
     A---G[ ]
     G --> |"ckd_stages <br> (requires index date)"| N["<b>CKD stage</b <br> at index date"]
     
+    B---H[ ]:::empty
+    A---H[ ]
+    H --> |"non_diabetes_meds <br> (requires index date)"| P["<b>Non-diabetes <br> medication</b> <br> at diabetes <br> diagnosis date"]
+    
     A --> |"all_death_causes"| O["<b>Death causes</b> <br> for all patients"]
     
     B --> |"final_merge"| I["<b>Final cohort dataset</b>"]
@@ -40,6 +44,7 @@ graph TD;
     L --> |"final_merge"| I
     M --> |"final_merge"| I
     N --> |"final_merge"| I
+    p --> |"final_merge"| I
     O --> |"final_merge"| I
 ```
 \*SIMD=Scottish Index of Multiple Deprivation; 'static' using the 2016 data. SIMD is coded as 1=most deprived, 10=least deprived. This differs from England deprivation score, where 1=least deprived, 10=most deprived. Two variables have been created: simd_decile (scottish version), imd_decile (translation of scottish to english).
@@ -56,6 +61,7 @@ graph TD;
 |**at_diag_baseline_biomarkers**: pulls biomarkers value at cohort index dates | **at_diag_baseline_biomarkers**: 1 row per patid (as there are no patids with >1 index date) with all biomarker values at index date where available (including HbA1c and height) |
 |**at_diag_ckd_stages**: finds onset of CKD stages relative to cohort index dates | **at_diag_ckd_stages**: 1 row per patid (as there are no patids with >1 index date) with baseline CKD stage at index date where available |
 |**at_diag_comorbidities**: finds onset of comorbidities relative to cohort index dates | **at_diag_comorbidities**:  1 row per patid (as there are no patids with >1 index date) with earliest pre-index date code occurrence, latest pre-index date code occurrence, and earliest post-index date code occurrence |
+|**at_diag_non_diabetes_meds**: dates of various non-diabetes medication prescriptions relative to cohort index dates | **at_diag_non_diabetes_meds**: 1 row per patid (as there are no patids with >1 index date) with earliest pre-index date script, latest pre-index date script, and earliest post-index date script for all non-diabetes medications where available |
 |**at_diag_smoking**: finds smoking status at cohort index dates | **at_diag_smoking**: 1 row per patid (as there are no patids with >1 index date) with smoking status and QRISK2 smoking category at index date where available |
 |**at_diag_alcohol**: finds alcohol status at cohort index dates | **at_diag_alcohol**: 1 row per patid (as there are no patids with >1 index date) with alcohol status at index date where available |
 |**at_diag_final_merge**: brings together variables from all of the above tables | **at_diag_final_merge**: 1 row per patid -(as there are no patids with >1 index date) with relevant biomarker/comorbidity/smoking/alcohol variables |

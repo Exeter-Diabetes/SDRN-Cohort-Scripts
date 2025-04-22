@@ -120,9 +120,9 @@ for (i in biomarkers) {
 	index_date_merge_tablename <- paste0("full_", i, "_index_date_merge")
 	
 	data <- get(clean_tablename) %>%
-		inner_join(index_dates, by = "serialno") %>%
-		mutate(datediff=as.numeric(difftime(date, index_date, units = "days")))
-
+			inner_join(index_dates, by = "serialno") %>%
+			mutate(datediff=as.numeric(difftime(date, index_date, units = "days")))
+	
 	assign(index_date_merge_tablename, data)
 	
 }
@@ -130,8 +130,8 @@ for (i in biomarkers) {
 # HbA1c
 
 full_hba1c_index_date_merge <- clean_hba1c_medcodes %>%
-	inner_join(index_dates, by = "serialno") %>%
-	mutate(datediff=as.numeric(difftime(date, index_date, units = "days")))
+		inner_join(index_dates, by = "serialno") %>%
+		mutate(datediff=as.numeric(difftime(date, index_date, units = "days")))
 
 
 ###############################################################################
@@ -159,37 +159,37 @@ for (i in biomarkers_no_height) {
 	pre_biomarker_datediff_variable <- paste0("pre", i, "datediff")
 	
 	data <- get(index_date_merge_tablename) %>%
-		filter(datediff <=7 & datediff >=-730) %>%
-		
-		group_by(serialno) %>%
-		
-		mutate(interim_var = ifelse(datediff<0, 0-datediff, datediff)) %>%  # abs() function did not work due to running out of memory
-		
-		mutate(min_timediff = min(interim_var, na.rm = TRUE)) %>%
-		
-		filter(interim_var == min_timediff) %>%
-		
-		mutate(pre_biomarker = ifelse(i=="egfr", max(testvalue, na.rm = TRUE), min(testvalue, na.rm = TRUE))) %>%
-		filter(pre_biomarker==testvalue) %>%
-		
-		arrange(datediff) %>%
-		filter(row_number()==1) %>%
-		
-		ungroup() %>%
-		
-		relocate(pre_biomarker, .after = serialno) %>%
-		relocate(date, .after = pre_biomarker) %>%
-		relocate(datediff, .after = date) %>%
-		
-		rename(
-				{{pre_biomarker_variable}}:=pre_biomarker,
-				{{pre_biomarker_date_variable}}:=date,
-				{{pre_biomarker_datediff_variable}}:=datediff
-		) %>%
-		select(-c(testvalue, min_timediff, interim_var))
+			filter(datediff <=7 & datediff >=-730) %>%
+			
+			group_by(serialno) %>%
+			
+			mutate(interim_var = ifelse(datediff<0, 0-datediff, datediff)) %>%  # abs() function did not work due to running out of memory
+			
+			mutate(min_timediff = min(interim_var, na.rm = TRUE)) %>%
+			
+			filter(interim_var == min_timediff) %>%
+			
+			mutate(pre_biomarker = ifelse(i=="egfr", max(testvalue, na.rm = TRUE), min(testvalue, na.rm = TRUE))) %>%
+			filter(pre_biomarker==testvalue) %>%
+			
+			arrange(datediff) %>%
+			filter(row_number()==1) %>%
+			
+			ungroup() %>%
+			
+			relocate(pre_biomarker, .after = serialno) %>%
+			relocate(date, .after = pre_biomarker) %>%
+			relocate(datediff, .after = date) %>%
+			
+			rename(
+					{{pre_biomarker_variable}}:=pre_biomarker,
+					{{pre_biomarker_date_variable}}:=date,
+					{{pre_biomarker_datediff_variable}}:=datediff
+			) %>%
+			select(-c(testvalue, min_timediff, interim_var))
 	
 	baseline_biomarkers <- baseline_biomarkers %>%
-		left_join((data %>% select(-index_date)), by = "serialno")
+			left_join((data %>% select(-index_date)), by = "serialno")
 	
 	
 }
@@ -197,13 +197,13 @@ for (i in biomarkers_no_height) {
 
 ## Height - only keep readings at/post-index date, and find mean
 baseline_height <- full_height_index_date_merge %>%
-	filter(datediff>=0) %>%
-	group_by(serialno) %>%
-	summarise(height=mean(testvalue, na.rm = TRUE)) %>%
-	ungroup()
+		filter(datediff>=0) %>%
+		group_by(serialno) %>%
+		summarise(height=mean(testvalue, na.rm = TRUE)) %>%
+		ungroup()
 
 baseline_biomarkers <- baseline_biomarkers %>%
-	left_join(baseline_height, by = "serialno")
+		left_join(baseline_height, by = "serialno")
 
 
 ## HbA1c: only between 6 months prior and 7 days after index date
@@ -211,35 +211,35 @@ baseline_biomarkers <- baseline_biomarkers %>%
 
 baseline_hba1c <- full_hba1c_index_date_merge %>%
 		
-	filter(datediff<=7 & datediff>=-183) %>%
-	
-	group_by(serialno) %>%
-	
-	mutate(min_timediff=min(abs(datediff), na.rm = TRUE)) %>%
-	filter(abs(datediff) == min_timediff) %>%
-	
-	mutate(prehba1c = min(testvalue, na.rm = TRUE)) %>%
-	filter(prehba1c==testvalue) %>%
-	
-	arrange(datediff) %>%
-	filter(row_number()==1) %>%
-	
-	ungroup() %>%
-	
-	relocate(prehba1c, .after=serialno) %>%
-	relocate(date, .after=prehba1c) %>%
-	relocate(datediff, .after=date) %>%
-	
-	rename(
-		prehba1cdate = date,
-		prehba1cdatediff = datediff
-	) %>%
-	
-	select(-c(testvalue, min_timediff, index_date))
+		filter(datediff<=7 & datediff>=-183) %>%
+		
+		group_by(serialno) %>%
+		
+		mutate(min_timediff=min(abs(datediff), na.rm = TRUE)) %>%
+		filter(abs(datediff) == min_timediff) %>%
+		
+		mutate(prehba1c = min(testvalue, na.rm = TRUE)) %>%
+		filter(prehba1c==testvalue) %>%
+		
+		arrange(datediff) %>%
+		filter(row_number()==1) %>%
+		
+		ungroup() %>%
+		
+		relocate(prehba1c, .after=serialno) %>%
+		relocate(date, .after=prehba1c) %>%
+		relocate(datediff, .after=date) %>%
+		
+		rename(
+				prehba1cdate = date,
+				prehba1cdatediff = datediff
+		) %>%
+		
+		select(-c(testvalue, min_timediff, index_date))
 
 ## Join HbA1c to main table
 baseline_biomarkers <- baseline_biomarkers %>%
-	left_join(baseline_hba1c, by = "serialno")
+		left_join(baseline_hba1c, by = "serialno")
 
 
 save(baseline_biomarkers, file = "/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/at_diag_baseline_biomarkers.RData")
