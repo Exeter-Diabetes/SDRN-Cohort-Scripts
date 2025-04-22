@@ -2,7 +2,11 @@
 
 ## Introduction
 
-This repository contains the R scripts used by the Exeter Diabetes team to produce three cohorts and their associated biomarker/comorbidity/sociodemographic data from a SDRN dataset (NDS 2023): \* An **'at-diagnosis'** cohort \* A **prevalent** cohort (registered at 01/11/2022) \* A **treatment response** (MASTERMIND) cohort (those initiating diabetes medications)
+This repository contains the R scripts used by the Exeter Diabetes team to produce three cohorts and their associated biomarker/comorbidity/sociodemographic data from a SDRN dataset (NDS 2023): 
+
+-   An **'at-diagnosis'** cohort 
+-   A **prevalent** cohort (registered at 01/11/2022) 
+-   A **treatment response** (MASTERMIND) cohort (those initiating diabetes medications)
 
 A description of the SRDN cohort can be found at: [DOI 10.1136/bmjopen-2022-063046](https://www.doi.org/10.1136/bmjopen-2022-063046)
 
@@ -10,10 +14,10 @@ The below diagram outlines the data processing steps involved in creating these 
 
 ``` mermaid
 graph TD;
-    A["<b>NDS 2023 release</b>"] --> |"Unique patients with a diabetes diagnosis"| B["<b>Diabetes cohort*</b>: n=XX"]
-    B --> C["<b>01 At-diagnosis cohort</b>: <br> n=XX <br> Index date=diagnosis date"]
-    B --> D["<b>02 Prevalent cohort</b>: <br> n= <br> Actively registered on 01/11/2022 <br> Index date=diagnosis date"]
-    B --> E["<b>03 Treatment response (MASTERMIND) cohort</b>: n=XX with XX unique drug periods <br> With script for diabetes medication <br> Index date=drug start date"]
+    A["<b>NDS 2023 release</b>"] --> |"Unique patients with a diabetes diagnosis"| B["<b>Diabetes cohort*</b>: n=558,892"]
+    B --> C["<b>01 At-diagnosis cohort</b>: <br> n=558,892 <br> Index date=diagnosis date"]
+    B --> D["<b>02 Prevalent cohort</b>: <br> n=558,892 <br> Actively registered on 01/11/2022 <br> Index date=diagnosis date"]
+    B --> E["<b>03 Treatment response (MASTERMIND) cohort</b>: n=401,998 with 926,897 unique drug periods <br> With script for diabetes medication <br> Index date=drug start date"]
 ```
 
 \* Earliest mention of diabetes is required to after on or after date of birth.
@@ -83,7 +87,6 @@ Comorbidities have been coded using ICD10/OPCS4 codes.
 ## Things not codded yet:
 
 -   EFI: electronic frailty index (<https://pubmed.ncbi.nlm.nih.gov/26944937/>)
--   Non diabetes medication: e.g. blood pressure medication/statins
 -   QRISK2
 
 
