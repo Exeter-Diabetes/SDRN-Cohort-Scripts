@@ -110,10 +110,3 @@ alcohol <- alcohol_cat
 save(alcohol, file = "/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/prev_alcohol.RData")
 
 
-
-
-
-
-
-
-

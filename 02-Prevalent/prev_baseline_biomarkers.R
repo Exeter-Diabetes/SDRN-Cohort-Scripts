@@ -240,9 +240,9 @@ baseline_hba1c <- full_hba1c_index_date_merge %>%
 ## Join HbA1c to main table
 baseline_biomarkers <- baseline_biomarkers %>%
 		rename(
-			prehba1c2yrs = prehba1c,
-			prehba1cdate2yrs = prehba1cdate,
-			prehba1cdatediff2yrs = prehba1cdatediff
+				prehba1c2yrs = prehba1c,
+				prehba1cdate2yrs = prehba1cdate,
+				prehba1cdatediff2yrs = prehba1cdatediff
 		) %>%
 		left_join(baseline_hba1c, by = "serialno") %>%
 		relocate(height, .after = prehba1cdatediff)

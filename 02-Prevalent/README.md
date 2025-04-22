@@ -16,6 +16,7 @@ graph TD;
     A-->|"comorbidities <br> (requires index date)"|F["<b>Comorbidities</b> <br> at 01/11/2022"]
     A-->|"smoking <br> (requires index date)"|G["<b>Smoking status</b> <br> at 01/11/2022"]
     A-->|"alcohol <br> (requires index date)"|H["<b>Alcohol status</b> <br> at 01/11/2022"]
+    A-->|"medications <br> (requires index date)"|K["<b>Diabetes and blood <br> pressure medications</b> <br> at 01/11/2022"]
     A --> |"all_death_causes"| I["<b>Death causes</b> <br> for all patients"]
     
     B-->|"final_merge"|J["<b>Final cohort dataset</b>"]
@@ -24,6 +25,7 @@ graph TD;
     F-->|"final_merge"|J
     G-->|"final_merge"|J
     H-->|"final_merge"|J  
+    K-->|"final_merge"|J
     I-->|"final_merge"|J
 ```
 \*SIMD=Scottish Index of Multiple Deprivation; 'static' using the 2016 data. SIMD is coded as 1=most deprived, 10=least deprived. This differs from England deprivation score, where 1=least deprived, 10=most deprived. Two variables have been created: simd_decile (scottish version), imd_decile (translation of scottish to english).
@@ -40,6 +42,7 @@ The scripts shown in the above diagram (in grey boxes) can be found in this dire
 | **all_diabetes_cohort**: table of patids meeting the criteria for our mixed Type 1/Type 2/'other' diabetes cohort plus additional patient variables | **all_diabetes_cohort**: 1 row per patid of those in the diabetes cohort, with diabetes diagnosis dates, DOB, gender, ethnicity etc. |
 |**at_diag_baseline_biomarkers**: pulls biomarkers value at cohort index dates | **at_diag_baseline_biomarkers**: 1 row per patid (as there are no patids with >1 index date) with all biomarker values at index date where available (including HbA1c and height) |
 |**at_diag_ckd_stages**: finds onset of CKD stages relative to cohort index dates | **at_diag_ckd_stages**: 1 row per patid (as there are no patids with >1 index date) with baseline CKD stage at index date where available |
+|**prev_medications**: finds dates of diabetes and blood pressure medications prescriptions relative to index dates | **prev_medications**: 1 row per patid (as there are no patids with >1 index date) with earliest pre-index date script, latest pre-index date script, and earliest post-index date script for diabetes / blood pressure medications where available |
 |**at_diag_comorbidities**: finds onset of comorbidities relative to cohort index dates | **at_diag_comorbidities**:  1 row per patid (as there are no patids with >1 index date) with earliest pre-index date code occurrence, latest pre-index date code occurrence, and earliest post-index date code occurrence |
 |**at_diag_smoking**: finds smoking status at cohort index dates | **at_diag_smoking**: 1 row per patid (as there are no patids with >1 index date) with smoking status and QRISK2 smoking category at index date where available |
 |**at_diag_alcohol**: finds alcohol status at cohort index dates | **at_diag_alcohol**: 1 row per patid (as there are no patids with >1 index date) with alcohol status at index date where available |

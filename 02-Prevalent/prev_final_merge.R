@@ -35,8 +35,8 @@ load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/prev_ckd_sta
 load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/prev_comorbidities.RData")
 #load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/prev_efi.RData")
 
-## Non-diabetes med
-#load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/prev_non_diabetes_meds.RData")
+## Medication
+load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/prev_medications.RData")
 
 ## Smoking status
 load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/prev_smoking.RData")
@@ -61,6 +61,7 @@ final_merge <- diabetes_cohort %>%
 #		left_join(efi), by = "serialno") %>%
 		left_join(smoking, by = "serialno") %>%
 		left_join(alcohol, by = "serialno") %>%
+		left_join(medications, by = "serialno") %>%
 		left_join(death_causes, by = "serialno")
 
 prev_final <- final_merge
