@@ -42,12 +42,12 @@ load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_clean_egf
 
 ckd_stages_from_all_egfr <- clean_egfr_medcodes %>%
 		mutate(
-			ckd_stage = ifelse(testvalue<15, "stage_5",
-					ifelse(testvalue<30, "stage_4",
-							ifelse(testvalue<45, "stage_3b",
-									ifelse(testvalue<60, "stage_3a",
-											ifelse(testvalue<90, "stage_2",
-													ifelse(testvalue>=90, "stage_1", NA))))))
+				ckd_stage = ifelse(testvalue<15, "stage_5",
+						ifelse(testvalue<30, "stage_4",
+								ifelse(testvalue<45, "stage_3b",
+										ifelse(testvalue<60, "stage_3a",
+												ifelse(testvalue<90, "stage_2",
+														ifelse(testvalue>=90, "stage_1", NA))))))
 		)
 
 
@@ -78,12 +78,12 @@ ckd_stages_from_algorithm <- ckd_stages_from_all_egfr %>%
 ckd_stages_from_algorithm <- ckd_stages_from_algorithm %>%
 		mutate(next_row = patid_row_id+1) %>%
 		left_join(
-			ckd_stages_from_algorithm, by = c("serialno", "next_row" = "patid_row_id")
+				ckd_stages_from_algorithm, by = c("serialno", "next_row" = "patid_row_id")
 		) %>%
 		mutate(
-			ckd_start = date.x,
-			ckd_end = ifelse(is.na(date.y), date.x, date.y),
-			ckd_stage = ckd_stage.x
+				ckd_start = date.x,
+				ckd_end = ifelse(is.na(date.y), date.x, date.y),
+				ckd_stage = ckd_stage.x
 		) %>%
 		select(serialno, patid_row_id, ckd_stage, ckd_start, ckd_end)
 
@@ -94,18 +94,18 @@ ckd_stages_from_algorithm <- ckd_stages_from_algorithm %>%
 		group_by(serialno, ckd_stage) %>%
 		arrange(serialno, ckd_stage, patid_row_id) %>%
 		mutate(
-			lead_var = lead(ckd_start),
-			cummax_var = cummax(ckd_end)
+				lead_var = lead(ckd_start),
+				cummax_var = cummax(ckd_end)
 		) %>%
 		mutate(compare = cumsum(lead_var>cummax_var)) %>%
 		mutate(indx = ifelse(row_number()==1, 0,lag(compare))) %>%
 		ungroup() %>%
 		group_by(serialno, ckd_stage, indx) %>%
 		summarise(
-			first_test_date = min(ckd_start, na.rm = TRUE),
-			last_test_date = max(ckd_start, na.rm = TRUE),
-			end_date = max(ckd_end, na.rm = TRUE),
-			test_count = max(patid_row_id, na.rm = TRUE) - min(patid_row_id, na.rm = TRUE)+1
+				first_test_date = min(ckd_start, na.rm = TRUE),
+				last_test_date = max(ckd_start, na.rm = TRUE),
+				end_date = max(ckd_end, na.rm = TRUE),
+				test_count = max(patid_row_id, na.rm = TRUE) - min(patid_row_id, na.rm = TRUE)+1
 		) %>%
 		ungroup()
 
@@ -239,33 +239,33 @@ ckd_stages_from_algorithm <- ckd_stages_from_algorithm %>%
 
 ckd_stages_from_algorithm <- ckd_stages_from_algorithm %>%
 		pivot_wider(
-			id_cols = serialno,
-			names_from = ckd_stage,
-			values_from = ckd_stage_start
+				id_cols = serialno,
+				names_from = ckd_stage,
+				values_from = ckd_stage_start
 		) %>%
 		mutate(
-			stage_1 = ifelse(!is.na(stage_1) & !is.na(stage_2) & stage_1>stage_2, NA, stage_1),
-			stage_1 = ifelse(!is.na(stage_1) & !is.na(stage_3a) & stage_1>stage_3a, NA, stage_1),
-			stage_1 = ifelse(!is.na(stage_1) & !is.na(stage_3b) & stage_1>stage_3b, NA, stage_1),
-			stage_1 = ifelse(!is.na(stage_1) & !is.na(stage_4) & stage_1>stage_4, NA, stage_1),
-			stage_1 = ifelse(!is.na(stage_1) & !is.na(stage_5) & stage_1>stage_5, NA, stage_1),
-			stage_2 = ifelse(!is.na(stage_2) & !is.na(stage_3a) & stage_2>stage_3a, NA, stage_2),
-			stage_2 = ifelse(!is.na(stage_2) & !is.na(stage_3b) & stage_2>stage_3b, NA, stage_2),
-			stage_2 = ifelse(!is.na(stage_2) & !is.na(stage_4) & stage_2>stage_4, NA, stage_2),
-			stage_2 = ifelse(!is.na(stage_2) & !is.na(stage_5) & stage_2>stage_5, NA, stage_2),
-			stage_3a = ifelse(!is.na(stage_3a) & !is.na(stage_3b) & stage_3a>stage_3b, NA, stage_3a),
-			stage_3a = ifelse(!is.na(stage_3a) & !is.na(stage_4) & stage_3a>stage_4, NA, stage_3a),
-			stage_3a = ifelse(!is.na(stage_3a) & !is.na(stage_5) & stage_3a>stage_5, NA, stage_3a),
-			stage_3b = ifelse(!is.na(stage_3b) & !is.na(stage_4) & stage_3b>stage_4, NA, stage_3b),
-			stage_3b = ifelse(!is.na(stage_3b) & !is.na(stage_5) & stage_3b>stage_5, NA, stage_3b),
-			stage_4 = ifelse(!is.na(stage_4) & !is.na(stage_5) & stage_4>stage_5, NA, stage_4)
+				stage_1 = ifelse(!is.na(stage_1) & !is.na(stage_2) & stage_1>stage_2, NA, stage_1),
+				stage_1 = ifelse(!is.na(stage_1) & !is.na(stage_3a) & stage_1>stage_3a, NA, stage_1),
+				stage_1 = ifelse(!is.na(stage_1) & !is.na(stage_3b) & stage_1>stage_3b, NA, stage_1),
+				stage_1 = ifelse(!is.na(stage_1) & !is.na(stage_4) & stage_1>stage_4, NA, stage_1),
+				stage_1 = ifelse(!is.na(stage_1) & !is.na(stage_5) & stage_1>stage_5, NA, stage_1),
+				stage_2 = ifelse(!is.na(stage_2) & !is.na(stage_3a) & stage_2>stage_3a, NA, stage_2),
+				stage_2 = ifelse(!is.na(stage_2) & !is.na(stage_3b) & stage_2>stage_3b, NA, stage_2),
+				stage_2 = ifelse(!is.na(stage_2) & !is.na(stage_4) & stage_2>stage_4, NA, stage_2),
+				stage_2 = ifelse(!is.na(stage_2) & !is.na(stage_5) & stage_2>stage_5, NA, stage_2),
+				stage_3a = ifelse(!is.na(stage_3a) & !is.na(stage_3b) & stage_3a>stage_3b, NA, stage_3a),
+				stage_3a = ifelse(!is.na(stage_3a) & !is.na(stage_4) & stage_3a>stage_4, NA, stage_3a),
+				stage_3a = ifelse(!is.na(stage_3a) & !is.na(stage_5) & stage_3a>stage_5, NA, stage_3a),
+				stage_3b = ifelse(!is.na(stage_3b) & !is.na(stage_4) & stage_3b>stage_4, NA, stage_3b),
+				stage_3b = ifelse(!is.na(stage_3b) & !is.na(stage_5) & stage_3b>stage_5, NA, stage_3b),
+				stage_4 = ifelse(!is.na(stage_4) & !is.na(stage_5) & stage_4>stage_5, NA, stage_4)
 		) %>%
 		mutate(
-			stage_1 = as.Date(stage_1, origin = "1970-01-01"),
-			stage_2 = as.Date(stage_2, origin = "1970-01-01"),
-			stage_3a = as.Date(stage_3a, origin = "1970-01-01"),
-			stage_3b = as.Date(stage_3b, origin = "1970-01-01"),
-			stage_4 = as.Date(stage_4, origin = "1970-01-01")
+				stage_1 = as.Date(stage_1, origin = "1970-01-01"),
+				stage_2 = as.Date(stage_2, origin = "1970-01-01"),
+				stage_3a = as.Date(stage_3a, origin = "1970-01-01"),
+				stage_3b = as.Date(stage_3b, origin = "1970-01-01"),
+				stage_4 = as.Date(stage_4, origin = "1970-01-01")
 		)
 
 
@@ -280,38 +280,38 @@ ckd_stages <- drug_start_stop %>%
 		select(serialno, dstartdate, drug_class, drug_substance, drug_instance) %>%
 		left_join(ckd_stages_from_algorithm, by = c("serialno")) %>%
 		mutate(
-			preckdstage = ifelse(!is.na(stage_5) & difftime(stage_5, dstartdate, units = "days")<=7, "stage_5",
-					ifelse(!is.na(stage_4) & difftime(stage_4, dstartdate, units = "days")<=7, "stage_4",
-							ifelse(!is.na(stage_3b) & difftime(stage_3b, dstartdate, units = "days")<=7, "stage_3b",
-									ifelse(!is.na(stage_3a) & difftime(stage_3a, dstartdate, units = "days")<=7, "stage_3a",
-											ifelse(!is.na(stage_2) & difftime(stage_2, dstartdate, units = "days")<=7, "stage_2",
-													ifelse(!is.na(stage_1) & difftime(stage_1, dstartdate, units = "days")<=7, "stage_1", NA)))))),
-			
-			preckdstagedate = ifelse(preckdstage=="stage_5", stage_5,
-					ifelse(preckdstage=="stage_4", stage_4,
-							ifelse(preckdstage=="stage_3b", stage_3b,
-									ifelse(preckdstage=="stage_3a", stage_3a,
-											ifelse(preckdstage=="stage_2", stage_2,
-													ifelse(preckdstage=="stage_1", stage_1, NA)))))),
-			preckdstagedate = as.Date(preckdstagedate, origin = "1970-01-01"),
-			
-			preckdstagedrugdiff = difftime(preckdstagedate, dstartdate, units = "days"),
-			
-			postckdstage345date = pmin(
-				ifelse(!is.na(stage_3a) & difftime(stage_3a, dstartdate, units = "days")>7, stage_3a, as.Date("2050-01-01", origin = "1970-01-01")),
-				ifelse(!is.na(stage_3b) & difftime(stage_3b, dstartdate, units = "days")>7, stage_3b, as.Date("2050-01-01", origin = "1970-01-01")),
-				ifelse(!is.na(stage_4) & difftime(stage_4, dstartdate, units = "days")>7, stage_4, as.Date("2050-01-01", origin = "1970-01-01")),
-				ifelse(!is.na(stage_5) & difftime(stage_5, dstartdate, units = "days")>7, stage_5, as.Date("2050-01-01", origin = "1970-01-01")), na.rm = TRUE
-			),
-			postckdstage345date = as.Date(postckdstage345date, origin = "1970-01-01"),
-			
-			postckdstage5date = ifelse(!is.na(stage_5) & difftime(stage_5, dstartdate, units = "days")>7, stage_5, NA),
-			postckdstage5date = as.Date(postckdstage5date, origin = "1970-01-01")
-			
+				preckdstage = ifelse(!is.na(stage_5) & difftime(stage_5, dstartdate, units = "days")<=7, "stage_5",
+						ifelse(!is.na(stage_4) & difftime(stage_4, dstartdate, units = "days")<=7, "stage_4",
+								ifelse(!is.na(stage_3b) & difftime(stage_3b, dstartdate, units = "days")<=7, "stage_3b",
+										ifelse(!is.na(stage_3a) & difftime(stage_3a, dstartdate, units = "days")<=7, "stage_3a",
+												ifelse(!is.na(stage_2) & difftime(stage_2, dstartdate, units = "days")<=7, "stage_2",
+														ifelse(!is.na(stage_1) & difftime(stage_1, dstartdate, units = "days")<=7, "stage_1", NA)))))),
+				
+				preckdstagedate = ifelse(preckdstage=="stage_5", stage_5,
+						ifelse(preckdstage=="stage_4", stage_4,
+								ifelse(preckdstage=="stage_3b", stage_3b,
+										ifelse(preckdstage=="stage_3a", stage_3a,
+												ifelse(preckdstage=="stage_2", stage_2,
+														ifelse(preckdstage=="stage_1", stage_1, NA)))))),
+				preckdstagedate = as.Date(preckdstagedate, origin = "1970-01-01"),
+				
+				preckdstagedrugdiff = difftime(preckdstagedate, dstartdate, units = "days"),
+				
+				postckdstage345date = pmin(
+						ifelse(!is.na(stage_3a) & difftime(stage_3a, dstartdate, units = "days")>7, stage_3a, as.Date("2050-01-01", origin = "1970-01-01")),
+						ifelse(!is.na(stage_3b) & difftime(stage_3b, dstartdate, units = "days")>7, stage_3b, as.Date("2050-01-01", origin = "1970-01-01")),
+						ifelse(!is.na(stage_4) & difftime(stage_4, dstartdate, units = "days")>7, stage_4, as.Date("2050-01-01", origin = "1970-01-01")),
+						ifelse(!is.na(stage_5) & difftime(stage_5, dstartdate, units = "days")>7, stage_5, as.Date("2050-01-01", origin = "1970-01-01")), na.rm = TRUE
+				),
+				postckdstage345date = as.Date(postckdstage345date, origin = "1970-01-01"),
+				
+				postckdstage5date = ifelse(!is.na(stage_5) & difftime(stage_5, dstartdate, units = "days")>7, stage_5, NA),
+				postckdstage5date = as.Date(postckdstage5date, origin = "1970-01-01")
+		
 		) %>%
 		mutate(
-			postckdstage345date = ifelse(postckdstage345date == as.Date("2050-01-01", origin = "1970-01-01"), as.Date(NA), postckdstage345date),
-			postckdstage345date = as.Date(postckdstage345date, origin = "1970-01-01")
+				postckdstage345date = ifelse(postckdstage345date == as.Date("2050-01-01", origin = "1970-01-01"), as.Date(NA), postckdstage345date),
+				postckdstage345date = as.Date(postckdstage345date, origin = "1970-01-01")
 		) %>%
 		select(serialno, dstartdate, drug_class, drug_substance, drug_instance, preckdstagedate, preckdstagedrugdiff, preckdstage, postckdstage5date, postckdstage345date)
 

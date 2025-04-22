@@ -76,10 +76,10 @@ glycaemic_failure_thresholds <- drug_periods %>%
 		inner_join((baseline_biomarkers %>% select(serialno, dstartdate, drug_class, prehba1c, prehba1cdate)), by = c("serialno", "dstartdate", "drug_class")) %>%
 		distinct() %>%
 		mutate(
-			threshold_7.5 = 58,
-			threshold_8.5 = 70,
-			threshold_baseline = prehba1c,
-			threshold_baseline_0.5 = prehba1c-5.5
+				threshold_7.5 = 58,
+				threshold_8.5 = 70,
+				threshold_baseline = prehba1c,
+				threshold_baseline_0.5 = prehba1c-5.5
 		)
 
 # Baseline biomarkers has duplicates for serialno-dstartdate-drug_class for multiple substances - but prehba1c and prehba1cdate will be the same
@@ -115,18 +115,18 @@ for (i in thresholds) {
 			arrange(date) %>%
 			
 			mutate(
-				threshold_double = ifelse(testvalue>!!as.name(threshold_value) & lead(testvalue)>!!as.name(threshold_value), 1, 0),
-				threshold_single_and_add = ifelse(testvalue>!!as.name(threshold_value) & date==latest_fail_hba1c & nextdrugchange=="add", 1, 0),
-				fail_date = ifelse((!is.na(threshold_double) & threshold_double==1) | (!is.na(threshold_single_and_add) & threshold_single_and_add==1), date,
-						ifelse(is.na(!!as.name(threshold_value)), as.Date(NA), nextdcdate)),
-				fail_date = as.Date(fail_date, origin = "1970-01-01"),
-				threshold_double_period = max(threshold_double, na.rm = TRUE),
-				threshold_single_and_add_period = max(threshold_single_and_add, na.rm = TRUE),
-				{{fail_date}}:=min(fail_date, na.rm = TRUE),
-				{{fail_reason}}:=ifelse(is.na(!!as.name(threshold_value)), NA,
-						ifelse(!is.na(threshold_double) & threshold_double_period==1, "Fail - 2 HbA1cs >threshold",
-								ifelse(!is.na(threshold_single_and_add) & threshold_single_and_add_period==1, "Fail - 1 HbA1cs >threshold then add drug",
-										ifelse(nextdcdate==dstopdate, "End of prescriptions", "Change in diabetes drugs"))))
+					threshold_double = ifelse(testvalue>!!as.name(threshold_value) & lead(testvalue)>!!as.name(threshold_value), 1, 0),
+					threshold_single_and_add = ifelse(testvalue>!!as.name(threshold_value) & date==latest_fail_hba1c & nextdrugchange=="add", 1, 0),
+					fail_date = ifelse((!is.na(threshold_double) & threshold_double==1) | (!is.na(threshold_single_and_add) & threshold_single_and_add==1), date,
+							ifelse(is.na(!!as.name(threshold_value)), as.Date(NA), nextdcdate)),
+					fail_date = as.Date(fail_date, origin = "1970-01-01"),
+					threshold_double_period = max(threshold_double, na.rm = TRUE),
+					threshold_single_and_add_period = max(threshold_single_and_add, na.rm = TRUE),
+					{{fail_date}}:=min(fail_date, na.rm = TRUE),
+					{{fail_reason}}:=ifelse(is.na(!!as.name(threshold_value)), NA,
+							ifelse(!is.na(threshold_double) & threshold_double_period==1, "Fail - 2 HbA1cs >threshold",
+									ifelse(!is.na(threshold_single_and_add) & threshold_single_and_add_period==1, "Fail - 1 HbA1cs >threshold then add drug",
+											ifelse(nextdcdate==dstopdate, "End of prescriptions", "Change in diabetes drugs"))))
 			) %>%
 			
 			ungroup() %>%
@@ -174,9 +174,9 @@ for (i in thresholds) {
 			group_by(serialno, dstartdate, drug_class) %>%
 			
 			mutate(
-				threshold_reached = ifelse(!is.na(testvalue) & testvalue<=!!as.name(threshold_value) & date<=!!as.name(fail_date), 1, 0),
-				threshold_reached = ifelse(is.na(!!as.name(threshold_value)), NA, threshold_reached),
-				{{fail_threshold_reached}}:=max(threshold_reached, na.rm = TRUE)
+					threshold_reached = ifelse(!is.na(testvalue) & testvalue<=!!as.name(threshold_value) & date<=!!as.name(fail_date), 1, 0),
+					threshold_reached = ifelse(is.na(!!as.name(threshold_value)), NA, threshold_reached),
+					{{fail_threshold_reached}}:=max(threshold_reached, na.rm = TRUE)
 			) %>%
 			
 			ungroup() %>%
@@ -196,8 +196,8 @@ glycaemic_failure <- glycaemic_failure_thresholds_reached %>%
 		relocate(hba1c_fail_baseline_reached, .after=hba1c_fail_baseline_reason) %>%
 		relocate(hba1c_fail_baseline_0.5_reached, .after=hba1c_fail_baseline_0.5_reason) %>%
 		mutate(
-			hba1c_fail_baseline_reached = ifelse(is.infinite(hba1c_fail_baseline_reached), NA, hba1c_fail_baseline_reached),
-			hba1c_fail_baseline_0.5_reached = ifelse(is.infinite(hba1c_fail_baseline_0.5_reached), NA, hba1c_fail_baseline_0.5_reached)
+				hba1c_fail_baseline_reached = ifelse(is.infinite(hba1c_fail_baseline_reached), NA, hba1c_fail_baseline_reached),
+				hba1c_fail_baseline_0.5_reached = ifelse(is.infinite(hba1c_fail_baseline_0.5_reached), NA, hba1c_fail_baseline_0.5_reached)
 		)
 
 save(glycaemic_failure, file = "/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_glycaemic_failure.RData")

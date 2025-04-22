@@ -40,16 +40,16 @@ for (i in 1:length(biomarkers)) {
 	clean_tablename <- paste0("clean_", biomarkers[i], "_medcodes")
 	
 	mysqlquery <- paste0("
-				SELECT o_observation.* 
-				FROM o_observation, o_concept_observation 
-				WHERE
+					SELECT o_observation.* 
+					FROM o_observation, o_concept_observation 
+					WHERE
 					o_observation.concept_id = o_concept_observation.uid AND 
 					o_concept_observation.path = '", concept_observation[i], "'")
 	
 	data <- dbGetQueryMap(con, mysqlquery) %>%
-		select(serialno, date, "testvalue" = num.value) %>%
-		drop_na(testvalue) %>%
-		filter(testvalue >= min_limits[i] & testvalue <= max_limits[i])
+			select(serialno, date, "testvalue" = num.value) %>%
+			drop_na(testvalue) %>%
+			filter(testvalue >= min_limits[i] & testvalue <= max_limits[i])
 	
 	assign(clean_tablename, data)
 	
@@ -57,18 +57,18 @@ for (i in 1:length(biomarkers)) {
 
 
 clean_hba1c_medcodes <- dbGetQueryMap(con, "
-				SELECT o_observation.*
-				FROM o_observation, o_concept_observation
-				WHERE
-					o_observation.concept_id = o_concept_observation.uid AND
-					o_concept_observation.path = 'biochem-hba1c'") %>%
-	select(serialno, date, "testvalue" = num.value) %>%
-	drop_na(testvalue) %>%
-	mutate(testvalue = ifelse(testvalue<20, ((testvalue-2.152)/0.09148), testvalue)) %>%
-	filter(testvalue >= 20 & testvalue <= 195) %>%
-	group_by(serialno, date) %>%
-	summarise(testvalue = mean(testvalue, na.rm = TRUE)) %>%
-	ungroup()
+						SELECT o_observation.*
+						FROM o_observation, o_concept_observation
+						WHERE
+						o_observation.concept_id = o_concept_observation.uid AND
+						o_concept_observation.path = 'biochem-hba1c'") %>%
+		select(serialno, date, "testvalue" = num.value) %>%
+		drop_na(testvalue) %>%
+		mutate(testvalue = ifelse(testvalue<20, ((testvalue-2.152)/0.09148), testvalue)) %>%
+		filter(testvalue >= 20 & testvalue <= 195) %>%
+		group_by(serialno, date) %>%
+		summarise(testvalue = mean(testvalue, na.rm = TRUE)) %>%
+		ungroup()
 
 
 # Get diabetes cohort
@@ -79,17 +79,17 @@ clean_egfr_medcodes <- clean_creatinine_blood_medcodes %>%
 		inner_join(diabetes_cohort %>%
 						select(serialno, dob, gender), by = c("serialno")) %>%
 		mutate(
-			age_at_creat = as.numeric(difftime(date, dob, units = "days"))/365.25,
-			sex = ifelse(gender==1, "male", ifelse(gender==2, "female", NA))
+				age_at_creat = as.numeric(difftime(date, dob, units = "days"))/365.25,
+				sex = ifelse(gender==1, "male", ifelse(gender==2, "female", NA))
 		) %>%
 		select(-c(dob, gender)) %>%
 		## CKD epi 2021 egfr
 		mutate(
-			creatinine_mgdl = testvalue*0.0113,
-			ckd_epi_2021_egfr = ifelse(creatinine_mgdl<=0.7 & sex=="female", (142 * ((creatinine_mgdl/0.7)^-0.241) * (0.9938^age_at_creat) * 1.012),
-					ifelse(creatinine_mgdl>0.7 & sex=="female", (142 * ((creatinine_mgdl/0.7)^-1.2) * (0.9938^age_at_creat) * 1.012),
-							ifelse(creatinine_mgdl<=0.9 & sex=="male", (142 * ((creatinine_mgdl/0.9)^-0.302) * (0.9938^age_at_creat)),
-									ifelse(creatinine_mgdl>0.9 & sex=="male", (142 * ((creatinine_mgdl/0.9)^-1.2) * (0.9938^age_at_creat)), NA))))
+				creatinine_mgdl = testvalue*0.0113,
+				ckd_epi_2021_egfr = ifelse(creatinine_mgdl<=0.7 & sex=="female", (142 * ((creatinine_mgdl/0.7)^-0.241) * (0.9938^age_at_creat) * 1.012),
+						ifelse(creatinine_mgdl>0.7 & sex=="female", (142 * ((creatinine_mgdl/0.7)^-1.2) * (0.9938^age_at_creat) * 1.012),
+								ifelse(creatinine_mgdl<=0.9 & sex=="male", (142 * ((creatinine_mgdl/0.9)^-0.302) * (0.9938^age_at_creat)),
+										ifelse(creatinine_mgdl>0.9 & sex=="male", (142 * ((creatinine_mgdl/0.9)^-1.2) * (0.9938^age_at_creat)), NA))))
 		) %>%
 		select(-c(creatinine_mgdl, testvalue, sex, age_at_creat)) %>%
 		rename(testvalue = ckd_epi_2021_egfr) %>%
@@ -166,9 +166,9 @@ for (i in biomarkers_no_height) {
 			filter(drugdatediff <=7 & drugdatediff >=-730) %>%
 			
 			group_by(serialno, dstartdate, drug_substance) %>%
-		
+			
 			mutate(interim_var = ifelse(drugdatediff<0, 0-drugdatediff, drugdatediff)) %>%  # abs() function did not work due to running out of memory
-	
+			
 			mutate(min_timediff = min(interim_var, na.rm = TRUE)) %>%
 			
 			filter(interim_var == min_timediff) %>%
@@ -194,7 +194,7 @@ for (i in biomarkers_no_height) {
 	
 	baseline_biomarkers <- baseline_biomarkers %>%
 			left_join(data, by = c("serialno", "dstartdate", "drug_substance"))
-			
+	
 }
 
 
@@ -236,14 +236,14 @@ baseline_hba1c <- full_hba1c_drug_merge %>%
 		ungroup() %>%
 		
 		rename(
-			prehba1c12mdate=date,
-			prehba1c12mdrugdiff=drugdatediff
+				prehba1c12mdate=date,
+				prehba1c12mdrugdiff=drugdatediff
 		) %>%
 		
 		mutate(
-			prehba1c = ifelse(prehba1c12mdrugdiff>=-183, prehba1c12m, NA),
-			prehba1cdate = ifelse(prehba1c12mdrugdiff>=-183, prehba1c12mdate, NA),
-			prehba1cdrugdiff = ifelse(prehba1c12mdrugdiff>=-183, prehba1c12mdrugdiff, NA)
+				prehba1c = ifelse(prehba1c12mdrugdiff>=-183, prehba1c12m, NA),
+				prehba1cdate = ifelse(prehba1c12mdrugdiff>=-183, prehba1c12mdate, NA),
+				prehba1cdrugdiff = ifelse(prehba1c12mdrugdiff>=-183, prehba1c12mdrugdiff, NA)
 		) %>%
 		
 		select(serialno, dstartdate, drug_substance, prehba1c12m, prehba1c12mdate, prehba1c12mdrugdiff, prehba1c, prehba1cdate, prehba1cdrugdiff)
@@ -260,9 +260,9 @@ baseline_hba1c <- baseline_hba1c %>%
 
 baseline_biomarkers <- baseline_biomarkers %>%
 		rename(
-			prehba1c2yrs = prehba1c,
-			prehba1c2yrsdate = prehba1cdate,
-			prehba1c2yrsdrugdiff = prehba1cdrugdiff
+				prehba1c2yrs = prehba1c,
+				prehba1c2yrsdate = prehba1cdate,
+				prehba1c2yrsdrugdiff = prehba1cdrugdiff
 		) %>%
 		left_join(baseline_hba1c, by = c("serialno", "dstartdate", "drug_substance")) %>%
 		relocate(height, .after=prehba1cdrugdiff)

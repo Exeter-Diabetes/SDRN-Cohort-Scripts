@@ -21,22 +21,22 @@ con <- dbConn("NDS_2023")
 
 ## Select Metformin initiations for type 2 diabetes patients
 mfn_initiations <- dbGetQueryMap(con, "
-	SELECT 
-		o_drug_era.serialno, o_drug_era.startdate, o_drug_era.enddate, o_drug_era.dailyexposure,
-		o_concept_drugs.drugname, o_concept_drugs.strength
-	FROM o_drug_era, o_concept_drugs
-	WHERE
-		o_drug_era.concept_id = o_concept_drugs.UID AND
-			(drugname LIKE 'METFORMIN%' OR 
-				drugname IN ('GLUCOPHAGE', 'GLUCOPHAGE SR', 'BOLAMYN SR', 'JANUMET', 
-							'METSOL', 'METABET', 'GLUCIENT SR', 'DIAGEMET XL',
-							'KOMBOGLYZE', 'SUKKARTO SR', 'MEIJUMET', 'YALTORMIN SR',
-							'METUXTAN', 'GLUCOREX SR') OR
-				drugname LIKE 'GLUCAMET%' OR
-			readcode LIKE 'f41%')") %>%
-	left_join(
-			drug_class_table, by = c("drugname")
-	)
+						SELECT 
+						o_drug_era.serialno, o_drug_era.startdate, o_drug_era.enddate, o_drug_era.dailyexposure,
+						o_concept_drugs.drugname, o_concept_drugs.strength
+						FROM o_drug_era, o_concept_drugs
+						WHERE
+						o_drug_era.concept_id = o_concept_drugs.UID AND
+						(drugname LIKE 'METFORMIN%' OR 
+						drugname IN ('GLUCOPHAGE', 'GLUCOPHAGE SR', 'BOLAMYN SR', 'JANUMET', 
+						'METSOL', 'METABET', 'GLUCIENT SR', 'DIAGEMET XL',
+						'KOMBOGLYZE', 'SUKKARTO SR', 'MEIJUMET', 'YALTORMIN SR',
+						'METUXTAN', 'GLUCOREX SR') OR
+						drugname LIKE 'GLUCAMET%' OR
+						readcode LIKE 'f41%')") %>%
+		left_join(
+				drug_class_table, by = c("drugname")
+		)
 
 # Check if there are any treatments not classified
 mfn_initiations %>% filter(is.na(drug_class_1)) %>% head()
@@ -44,18 +44,18 @@ mfn_initiations %>% filter(is.na(drug_class_1)) %>% head()
 
 ## Select SGLT2i initiations for type 2 diabetes patients
 sglt2_initiations <- dbGetQueryMap(con, "
-	SELECT 
-		o_drug_era.serialno, o_drug_era.startdate, o_drug_era.enddate, o_drug_era.dailyexposure,
-		o_concept_drugs.drugname, o_concept_drugs.strength
-	FROM o_drug_era, o_concept_drugs
-	WHERE
-		o_drug_era.concept_id = o_concept_drugs.UID AND
-			(drugname IN ('DAPAGLIFLOZIN', 'DAPAGLIFLOZIN AND METFORMIN', 'FORXIGA', 'XIGDUO', 'CANAGLIFLOZIN',
+						SELECT 
+						o_drug_era.serialno, o_drug_era.startdate, o_drug_era.enddate, o_drug_era.dailyexposure,
+						o_concept_drugs.drugname, o_concept_drugs.strength
+						FROM o_drug_era, o_concept_drugs
+						WHERE
+						o_drug_era.concept_id = o_concept_drugs.UID AND
+						(drugname IN ('DAPAGLIFLOZIN', 'DAPAGLIFLOZIN AND METFORMIN', 'FORXIGA', 'XIGDUO', 'CANAGLIFLOZIN',
 						'CANAGLIFLOZIN AND METFORMIN', 'INVOKANA', 'EMPAGLIFLOZIN', 'EMPAGLIFLOZIN AND LINAGLIPTIN',
 						'JARDIANCE', 'VOKANAMET', 'SYNJARDY', 'QTERN', 'ERTUGLIFLOZIN', 'STEGLATRO'))") %>%
-	left_join(
-			drug_class_table, by = c("drugname")
-	)
+		left_join(
+				drug_class_table, by = c("drugname")
+		)
 
 
 # Check if there are any treatments not classified
@@ -64,22 +64,22 @@ sglt2_initiations %>% filter(is.na(drug_class_1)) %>% head()
 
 ## Select TZD initiations for type 2 diabetes patients
 tzd_initiations <- dbGetQueryMap(con, "
-	SELECT
-		o_drug_era.serialno, o_drug_era.startdate, o_drug_era.enddate, o_drug_era.dailyexposure,
-		o_concept_drugs.drugname, o_concept_drugs.strength
-	FROM o_drug_era, o_concept_drugs
-	WHERE
-		o_drug_era.concept_id = o_concept_drugs.UID AND
-			(drugname IN ('ROSIGLITAZONE', 'ROSIGLITAZONE MALEATE', 'ROSIGLITAZONE AND METFORMIN', 'ROSIGLITAZONE + METFORMIN',
+						SELECT
+						o_drug_era.serialno, o_drug_era.startdate, o_drug_era.enddate, o_drug_era.dailyexposure,
+						o_concept_drugs.drugname, o_concept_drugs.strength
+						FROM o_drug_era, o_concept_drugs
+						WHERE
+						o_drug_era.concept_id = o_concept_drugs.UID AND
+						(drugname IN ('ROSIGLITAZONE', 'ROSIGLITAZONE MALEATE', 'ROSIGLITAZONE AND METFORMIN', 'ROSIGLITAZONE + METFORMIN',
 						'ROSIGLITAZONE WITH METFORMIN', 'ROSIGLITAZONE F-C', 'ROSIGLITAZONE ROSIGLITAZONE', 'ROSIGLITAZONE / METFORMIN',
 						'ROSIGLITAZON', 'AVANDIA ROSIGLITAZONE', 'AVANDIA', 'AVANDIA 8', 'AVANDIAMET2 / 1', 'PIOGLITAZONE', 
 						'PIOGLITAZONE HYDROCHLORIDE', 'PIOGLITAZONE AND METFORMIN', 'PIOGLITAZONE + METFORMIN',
 						'PIOGLITAZONE WITH METFORMIN', 'PIOGLITAZON', 'PIOGLITAZONE (ACTOS)', 'ACTOS PIOGLITAZONE',
 						'COMPETACT (PIOGLITAZONE / METFORMIN)', 'ACTOS', 'GLIZOFAR', 'GLIDIPION', 'TROGLITAZONE',
 						'BIGUANIDE TROGLITAZONE', 'TROGLITAZONE200 MCG' ,'TROGLITIAZONE', 'ROMOZIN', 'ROMOZIN (TROGLITAZONE)'))") %>%
-	left_join(
-			drug_class_table, by = c("drugname")
-	)
+		left_join(
+				drug_class_table, by = c("drugname")
+		)
 
 
 # Check if there are any treatments not classified
@@ -96,11 +96,11 @@ dpp4_initiations <- dbGetQueryMap(con, "
 						WHERE
 						o_drug_era.concept_id = o_concept_drugs.UID AND
 						(drugname IN ('SITAGLIPTIN', 'SITAGLIPTIN + METFORMIN', 'SITAGLIPTON', 'SITAGLIPTAIN', 'SITAGLIPTAN / METFORMIN',
-									'SITAGLEPTIN', 'SITAGLIPITIN', 'SITAGLIPTIW', 'JANUVIA', 'VILDAGLIPTIN', 'VILDAGLIPTIN + METFORMIN',
-									'VILDAGLIPTIN / METFORMIN', 'VILDAGLIPTIN WITH METFORMIN', 'GALVUS', 'SAXAGLIPTIN',
-									'SAXAGLIPTIN AND METFORMIN', 'SAXAGLIPTIN AND DAPAGLIFLOZIN', 'SAXAGLIPTAN', 'ONGLYZA',
-									'LINAGLIPTIN', 'TRAJENTA', 'JENTADUETO', 'ALOGLIPTIN', 'ALOGLIPTIN AND METFORMIN', 
-									'VIPIDIA', 'VIPDOMET'))") %>%
+						'SITAGLEPTIN', 'SITAGLIPITIN', 'SITAGLIPTIW', 'JANUVIA', 'VILDAGLIPTIN', 'VILDAGLIPTIN + METFORMIN',
+						'VILDAGLIPTIN / METFORMIN', 'VILDAGLIPTIN WITH METFORMIN', 'GALVUS', 'SAXAGLIPTIN',
+						'SAXAGLIPTIN AND METFORMIN', 'SAXAGLIPTIN AND DAPAGLIFLOZIN', 'SAXAGLIPTAN', 'ONGLYZA',
+						'LINAGLIPTIN', 'TRAJENTA', 'JENTADUETO', 'ALOGLIPTIN', 'ALOGLIPTIN AND METFORMIN', 
+						'VIPIDIA', 'VIPDOMET'))") %>%
 		left_join(
 				drug_class_table, by = c("drugname")
 		)
@@ -119,13 +119,13 @@ su_initiations <- dbGetQueryMap(con, "
 						WHERE
 						o_drug_era.concept_id = o_concept_drugs.UID AND
 						(drugname IN ('AMARYL', 'CHLORPROPAMIDE' ,'DAONIL' ,'SEMI-DAONIL', 'SEMI DAONIL', 'SEMI / DAONIL',
-									'DIABETAMIDE', 'DIAMICRON', 'DIAMICRON SR', 'DIAMICRON DIAMICRON', 'DIAMICRON 80 MGM',
-									'DIAMICRONE', 'EUGLUCON', 'GLIBENCLAMIDE', 'GLIBENESE', 'GLIPIZIDE', 'GLIPIZIDE PP',
-									'GLIMEPIRIDE', 'GLICLAZIDE', '<<D>>GLICLAZIDE', 'GLICLAZIDE 40', 'GLICLAZIDE 1',
-									'GLICLAZIDE SR', 'GLICLAZIDE STUDY PREP', 'GLICLAZIDE XL', 'GLURENORM', 'GLIQUIDONE',
-									'MINODIAB', 'TOLBUTAMIDE', 'DIAGLYK' ,'DIAGLYCK', 'DIAGLY K', 'DIAGLYX', 'NAZDOL',
-									'DACADIS', 'ZICRON', 'ZICRON PR', 'EDICIL', 'LAAGLYDA', 'VAMJU', 'BILXONA',
-									'TOLAZAMIDE', 'DIABINESE', 'DIAMICROM', 'RASTINON'))") %>%
+						'DIABETAMIDE', 'DIAMICRON', 'DIAMICRON SR', 'DIAMICRON DIAMICRON', 'DIAMICRON 80 MGM',
+						'DIAMICRONE', 'EUGLUCON', 'GLIBENCLAMIDE', 'GLIBENESE', 'GLIPIZIDE', 'GLIPIZIDE PP',
+						'GLIMEPIRIDE', 'GLICLAZIDE', '<<D>>GLICLAZIDE', 'GLICLAZIDE 40', 'GLICLAZIDE 1',
+						'GLICLAZIDE SR', 'GLICLAZIDE STUDY PREP', 'GLICLAZIDE XL', 'GLURENORM', 'GLIQUIDONE',
+						'MINODIAB', 'TOLBUTAMIDE', 'DIAGLYK' ,'DIAGLYCK', 'DIAGLY K', 'DIAGLYX', 'NAZDOL',
+						'DACADIS', 'ZICRON', 'ZICRON PR', 'EDICIL', 'LAAGLYDA', 'VAMJU', 'BILXONA',
+						'TOLAZAMIDE', 'DIABINESE', 'DIAMICROM', 'RASTINON'))") %>%
 		left_join(
 				drug_class_table, by = c("drugname")
 		)
@@ -143,36 +143,36 @@ glp1_initiations <- dbGetQueryMap(con, "
 						WHERE
 						o_drug_era.concept_id = o_concept_drugs.UID AND
 						(drugname IN ('LIRAGLUTIDE', 'LIRAGLUTIDE INJECTION', 'INSULIN DEGLUDEC 100 UNITS / ML / LIRAGLUTIDE',
-									'LIRAGLUTIDE PREFILLED', 'INSULIN DEGLUDEC AND LIRAGLUTIDE', 'LIRAGLUTIDE 1' ,
-									'LIRAGLUTIDE PRE FILLED', 'LIRAGLUTIDE PREFILLED PENS', 'VICTOZA', 'VICTOZA INJECTION',
-									'VICTOZA PREFILLED', 'VICTOZA PREFILLED PENS', 'LIXISENATIDE',
-									'INSULIN GLARGINE 100 UNITS / ML / LIXISENATIDE', 'LYXUMIA', 'XULTOPHY 100 UNITS',
-									'XULTOPHY', 'DULAGLUTIDE', 'TRULICITY', 'ALBIGLUTIDE', 'SAXENDA', 'EXENATIDE',
-									'EXENATIDE INJECTION', 'EXENATIDE 60 DOSE PREFILLED', 'EXENATIDE POWDER AND SOLVENT FOR',
-									'EXENATIDE 60-DOSE PREFILLED', 'EXENATIDE PWDR FOR INJECTIONSUSP', 'EXENATIDE SINGLE PREFILLED',
-									'BYETTA (EXENATIDE)', 'EXENATIDE INJECTION PREFILLED', 'EXENATIDE PREFILLED',
-									'EXENATIDE PRE FILLED', 'EXENATIDE(BYETTA)', 'EXENATIDE DISPOSABLE PENS',
-									'EXENATIDE EXENATIDE', 'EXENATIDE PREFILLED PENS', 'BYETTA EXENATIDE', 'EXENATIDE DISPOSABLE',
-									'EXENATIDE SUBCUTANEOUS', 'BYETTA', 'BYETTA INJECTION', 'BYETTA 60 DOSE PREFILLED',
-									'BYETTA PREFILLED', 'BYETTA BYETTA 10 UG PREFILLED', 'BYETTA INSULIN', 'BYETTA INSULIN',
-									'BYETTA 10', 'BYETTA BYETTA 5 UG PREFILLED', 'BYETTA PENS', 'BYETTA INJECTION 10 UG PENFILLED',
-									'BYETTA PREFILLED DISPOSABLE', 'BYETTA PREFILLED INJECTION', 'BYETTA PENS BYETTA',
-									'BYDUREON', 'BYDUREON BCISE', 'BYDUREON PWDR FOR INJECTIONSUSP', 'BYDUREON POWDER AND SOLVENT FOR',
-									'OZEMPIC', 'RYBELSUS', 'SEMAGLUTIDE'))") %>%
+						'LIRAGLUTIDE PREFILLED', 'INSULIN DEGLUDEC AND LIRAGLUTIDE', 'LIRAGLUTIDE 1' ,
+						'LIRAGLUTIDE PRE FILLED', 'LIRAGLUTIDE PREFILLED PENS', 'VICTOZA', 'VICTOZA INJECTION',
+						'VICTOZA PREFILLED', 'VICTOZA PREFILLED PENS', 'LIXISENATIDE',
+						'INSULIN GLARGINE 100 UNITS / ML / LIXISENATIDE', 'LYXUMIA', 'XULTOPHY 100 UNITS',
+						'XULTOPHY', 'DULAGLUTIDE', 'TRULICITY', 'ALBIGLUTIDE', 'SAXENDA', 'EXENATIDE',
+						'EXENATIDE INJECTION', 'EXENATIDE 60 DOSE PREFILLED', 'EXENATIDE POWDER AND SOLVENT FOR',
+						'EXENATIDE 60-DOSE PREFILLED', 'EXENATIDE PWDR FOR INJECTIONSUSP', 'EXENATIDE SINGLE PREFILLED',
+						'BYETTA (EXENATIDE)', 'EXENATIDE INJECTION PREFILLED', 'EXENATIDE PREFILLED',
+						'EXENATIDE PRE FILLED', 'EXENATIDE(BYETTA)', 'EXENATIDE DISPOSABLE PENS',
+						'EXENATIDE EXENATIDE', 'EXENATIDE PREFILLED PENS', 'BYETTA EXENATIDE', 'EXENATIDE DISPOSABLE',
+						'EXENATIDE SUBCUTANEOUS', 'BYETTA', 'BYETTA INJECTION', 'BYETTA 60 DOSE PREFILLED',
+						'BYETTA PREFILLED', 'BYETTA BYETTA 10 UG PREFILLED', 'BYETTA INSULIN', 'BYETTA INSULIN',
+						'BYETTA 10', 'BYETTA BYETTA 5 UG PREFILLED', 'BYETTA PENS', 'BYETTA INJECTION 10 UG PENFILLED',
+						'BYETTA PREFILLED DISPOSABLE', 'BYETTA PREFILLED INJECTION', 'BYETTA PENS BYETTA',
+						'BYDUREON', 'BYDUREON BCISE', 'BYDUREON PWDR FOR INJECTIONSUSP', 'BYDUREON POWDER AND SOLVENT FOR',
+						'OZEMPIC', 'RYBELSUS', 'SEMAGLUTIDE'))") %>%
 		left_join(
 				drug_class_table, by = c("drugname")
 		) %>%
 		mutate(
-			###### Oral semaglutide
-			drug_class_1 = ifelse(drugname == "SEMAGLUTIDE" & strength %in% c("14 MG", "7 MG", "3 MG"), "GLP1", drug_class_1),
-			drug_substance_1 = ifelse(drugname == "SEMAGLUTIDE" & strength %in% c("14 MG", "7 MG", "3 MG"), "Oral semaglutide", drug_substance_1),
-			###### Low-dose semaglutide
-			drug_class_1 = ifelse(drugname == "SEMAGLUTIDE" & grepl(c("0.25 MG / 0.19 ML"), strength), "GLP1", drug_class_1),
-			drug_substance_1 = ifelse(drugname == "SEMAGLUTIDE" & grepl(c("0.25 MG / 0.19 ML"), strength), "Low-dose semaglutide", drug_substance_1),
-			drug_class_1 = ifelse(drugname == "SEMAGLUTIDE" & grepl(c("0.5 MG / 0.37 ML"), strength), "GLP1", drug_class_1),
-			drug_substance_1 = ifelse(drugname == "SEMAGLUTIDE" & grepl(c("0.5 MG / 0.37 ML"), strength), "Low-dose semaglutide", drug_substance_1),
-			drug_class_1 = ifelse(drugname == "SEMAGLUTIDE" & grepl(c("1 MG / 0.74 ML"), strength), "GLP1", drug_class_1),
-			drug_substance_1 = ifelse(drugname == "SEMAGLUTIDE" & grepl(c("1 MG / 0.74 ML"), strength), "Low-dose semaglutide", drug_substance_1)
+				###### Oral semaglutide
+				drug_class_1 = ifelse(drugname == "SEMAGLUTIDE" & strength %in% c("14 MG", "7 MG", "3 MG"), "GLP1", drug_class_1),
+				drug_substance_1 = ifelse(drugname == "SEMAGLUTIDE" & strength %in% c("14 MG", "7 MG", "3 MG"), "Oral semaglutide", drug_substance_1),
+				###### Low-dose semaglutide
+				drug_class_1 = ifelse(drugname == "SEMAGLUTIDE" & grepl(c("0.25 MG / 0.19 ML"), strength), "GLP1", drug_class_1),
+				drug_substance_1 = ifelse(drugname == "SEMAGLUTIDE" & grepl(c("0.25 MG / 0.19 ML"), strength), "Low-dose semaglutide", drug_substance_1),
+				drug_class_1 = ifelse(drugname == "SEMAGLUTIDE" & grepl(c("0.5 MG / 0.37 ML"), strength), "GLP1", drug_class_1),
+				drug_substance_1 = ifelse(drugname == "SEMAGLUTIDE" & grepl(c("0.5 MG / 0.37 ML"), strength), "Low-dose semaglutide", drug_substance_1),
+				drug_class_1 = ifelse(drugname == "SEMAGLUTIDE" & grepl(c("1 MG / 0.74 ML"), strength), "GLP1", drug_class_1),
+				drug_substance_1 = ifelse(drugname == "SEMAGLUTIDE" & grepl(c("1 MG / 0.74 ML"), strength), "Low-dose semaglutide", drug_substance_1)
 		)
 
 
@@ -197,11 +197,11 @@ dbDisconnect(con)
 
 oha_list <- mfn_initiations %>%
 		rbind(
-			sglt2_initiations,
-			tzd_initiations,
-			dpp4_initiations,
-			su_initiations,
-			glp1_initiations
+				sglt2_initiations,
+				tzd_initiations,
+				dpp4_initiations,
+				su_initiations,
+				glp1_initiations
 		) %>%
 		select(-dailyexposure, -drugname, -strength) %>%
 		pivot_longer(cols = c(starts_with("drug_class"), starts_with("drug_substance")), names_to = c(".value", "row"), names_pattern = "([A-Za-z]+_[A-Za-z]+)_(\\d+)") %>%
@@ -234,47 +234,47 @@ all_scripts_long <- oha_list %>%
 		## drug_substance era start and end
 		rename("date" = "startdate") %>%
 		mutate(
-			dstart_substance_orig = 1,
-			dstop_substance_orig = 0
+				dstart_substance_orig = 1,
+				dstop_substance_orig = 0
 		) %>%
 		select(-enddate) %>%
 		rbind(
-			oha_list %>%
-				## remove entries that start and finish the same day
-				filter(difftime(enddate, startdate, units = "days") > 0) %>%
-				## drug_substance era start and end
-				rename("date" = "enddate") %>%
-				mutate(
-					dstart_substance_orig = 0,
-					dstop_substance_orig = 1
-				) %>%
-				select(-startdate)
+				oha_list %>%
+						## remove entries that start and finish the same day
+						filter(difftime(enddate, startdate, units = "days") > 0) %>%
+						## drug_substance era start and end
+						rename("date" = "enddate") %>%
+						mutate(
+								dstart_substance_orig = 0,
+								dstop_substance_orig = 1
+						) %>%
+						select(-startdate)
 		) %>%
 		group_by(serialno, drug_substance) %>%
 		arrange(date) %>%
 		mutate(
-			n_substance_era_started = cumsum(dstart_substance_orig),
-			n_substance_era_stopped = cumsum(dstop_substance_orig),
-			n_substance_era = n_substance_era_started - n_substance_era_stopped
+				n_substance_era_started = cumsum(dstart_substance_orig),
+				n_substance_era_stopped = cumsum(dstop_substance_orig),
+				n_substance_era = n_substance_era_started - n_substance_era_stopped
 		) %>%
 		select(-n_substance_era_started, -n_substance_era_stopped) %>%
 		mutate(
-			dstart_substance_interim = ifelse(dstart_substance_orig == 1 & n_substance_era == 1, 1, 0),
-			dstop_substance_interim = ifelse(dstop_substance_orig == 1 & n_substance_era == 0, 1, 0)
+				dstart_substance_interim = ifelse(dstart_substance_orig == 1 & n_substance_era == 1, 1, 0),
+				dstop_substance_interim = ifelse(dstop_substance_orig == 1 & n_substance_era == 0, 1, 0)
 		) %>%
 		select(-dstart_substance_orig, -dstop_substance_orig, -n_substance_era) %>%
 		filter(dstart_substance_interim + dstop_substance_interim > 0) %>%
 		mutate(
-			dstart_substance = ifelse(dstart_substance_interim == 1 & lag(dstart_substance_interim) %in% c(NA), 1, 
-					ifelse(dstart_substance_interim == 1 & lag(dstart_substance_interim) == 0 & difftime(date, lag(date), units = "days") > 183, 1, 0)),
-			dstop_substance = ifelse(dstop_substance_interim == 1 & is.na(lead(dstop_substance_interim)), 1,
-					ifelse(dstop_substance_interim == 1 & lead(dstop_substance_interim) == 0 & difftime(lead(date), date, units = "days") > 183, 1, 0))
+				dstart_substance = ifelse(dstart_substance_interim == 1 & lag(dstart_substance_interim) %in% c(NA), 1, 
+						ifelse(dstart_substance_interim == 1 & lag(dstart_substance_interim) == 0 & difftime(date, lag(date), units = "days") > 183, 1, 0)),
+				dstop_substance = ifelse(dstop_substance_interim == 1 & is.na(lead(dstop_substance_interim)), 1,
+						ifelse(dstop_substance_interim == 1 & lead(dstop_substance_interim) == 0 & difftime(lead(date), date, units = "days") > 183, 1, 0))
 		) %>%
 		select(-dstart_substance_interim, -dstop_substance_interim) %>%
 		ungroup() %>%
 		## keep only entries for start and stop
 		mutate(
-			interim_start_stop = dstart_substance + dstop_substance
+				interim_start_stop = dstart_substance + dstop_substance
 		) %>%
 		filter(interim_start_stop > 0) %>%
 		select(-interim_start_stop) %>%
@@ -282,10 +282,10 @@ all_scripts_long <- oha_list %>%
 		group_by(serialno, drug_class) %>%
 		arrange(date) %>%
 		mutate(
-			dstart_class = ifelse(dstart_substance == 1 & lag(dstart_substance) %in% c(NA), 1, 
-					ifelse(dstart_substance == 1 & lag(dstart_substance) == 0 & difftime(date, lag(date), units = "days") > 183, 1, 0)),
-			dstop_class = ifelse(dstop_substance == 1 & is.na(lead(dstop_substance)), 1,
-					ifelse(dstop_substance == 1 & lead(dstop_substance) == 0 & difftime(lead(date), date, units = "days") > 183, 1, 0))
+				dstart_class = ifelse(dstart_substance == 1 & lag(dstart_substance) %in% c(NA), 1, 
+						ifelse(dstart_substance == 1 & lag(dstart_substance) == 0 & difftime(date, lag(date), units = "days") > 183, 1, 0)),
+				dstop_class = ifelse(dstop_substance == 1 & is.na(lead(dstop_substance)), 1,
+						ifelse(dstop_substance == 1 & lead(dstop_substance) == 0 & difftime(lead(date), date, units = "days") > 183, 1, 0))
 		) %>%
 		ungroup() %>%
 		arrange(serialno, date)
@@ -296,10 +296,10 @@ all_scripts_long <- oha_list %>%
 all_scripts_long <- all_scripts_long %>%
 		group_by(serialno, date) %>%
 		mutate(
-			numstart_class = sum(dstart_class, na.rm = TRUE),
-			numstop_class = sum(dstop_class, na.rm = TRUE),
-			numstart_substance = sum(dstart_substance, na.rm = TRUE),
-			numstop_substance = sum(dstop_substance, na.rm = TRUE)
+				numstart_class = sum(dstart_class, na.rm = TRUE),
+				numstop_class = sum(dstop_class, na.rm = TRUE),
+				numstart_substance = sum(dstart_substance, na.rm = TRUE),
+				numstop_substance = sum(dstop_substance, na.rm = TRUE)
 		) %>%
 		ungroup()
 
@@ -339,11 +339,11 @@ drugsubstances <- c("Albiglutide", "Alogliptin", "Canagliflozin", "Chlorpropamid
 # Reshape all_scripts_long wide by drug class and drug substance - 1 row per patid/date
 all_scripts_class_wide <- all_scripts_long %>%
 		pivot_wider(
-			id_cols = c(serialno, date, numstart_class, numstop_class),
-			names_from = drug_class,
-			values_from = c(dstart_class, dstop_class),
-			values_fill = 0,
-			values_fn = max
+				id_cols = c(serialno, date, numstart_class, numstop_class),
+				names_from = drug_class,
+				values_from = c(dstart_class, dstop_class),
+				values_fill = 0,
+				values_fn = max
 		)
 
 #all_scripts_class_wide %>% nrow()
@@ -352,11 +352,11 @@ all_scripts_class_wide <- all_scripts_long %>%
 
 all_scripts_substance_wide <- all_scripts_long %>%
 		pivot_wider(
-			id_cols = c(serialno, date, numstart_substance, numstop_substance),
-			names_from = drug_substance,
-			values_from = c(dstart_substance, dstop_substance),
-			values_fill = 0,
-			values_fn = max
+				id_cols = c(serialno, date, numstart_substance, numstop_substance),
+				names_from = drug_substance,
+				values_from = c(dstart_substance, dstop_substance),
+				values_fill = 0,
+				values_fn = max
 		)
 
 #all_scripts_substance_wide %>% nrow()
@@ -375,12 +375,12 @@ all_scripts <- all_scripts %>%
 		group_by(serialno) %>%
 		arrange(date) %>%
 		mutate(
-			cu_numstart_class = cumsum(numstart_class),
-			cu_numstop_class = cumsum(numstop_class),
-			numdrugs_class = cu_numstart_class - cu_numstop_class + numstop_class,
-			cu_numstart_substance = cumsum(numstart_substance),
-			cu_numstop_substance = cumsum(numstop_substance),
-			numdrugs_substance = cu_numstart_substance - cu_numstop_substance + numstop_substance
+				cu_numstart_class = cumsum(numstart_class),
+				cu_numstop_class = cumsum(numstop_class),
+				numdrugs_class = cu_numstart_class - cu_numstop_class + numstop_class,
+				cu_numstart_substance = cumsum(numstart_substance),
+				cu_numstop_substance = cumsum(numstop_substance),
+				numdrugs_substance = cu_numstart_substance - cu_numstop_substance + numstop_substance
 		) %>%
 		ungroup()
 
@@ -390,45 +390,45 @@ all_scripts <- all_scripts %>%
 		group_by(serialno) %>%
 		arrange(date) %>%
 		mutate(
-			DPP4 = cumsum(dstart_class_DPP4) > cumsum(dstop_class_DPP4) | dstart_class_DPP4==1 | dstop_class_DPP4 == 1,
-			GLP1 = cumsum(dstart_class_GLP1) > cumsum(dstop_class_GLP1) | dstart_class_GLP1==1 | dstop_class_GLP1 == 1,
-			INS = cumsum(dstart_class_INS) > cumsum(dstop_class_INS) | dstart_class_INS==1 | dstop_class_INS == 1,
-			MFN = cumsum(dstart_class_MFN) > cumsum(dstop_class_MFN) | dstart_class_MFN==1 | dstop_class_MFN == 1,
-			SGLT2 = cumsum(dstart_class_SGLT2) > cumsum(dstop_class_SGLT2) | dstart_class_SGLT2==1 | dstop_class_SGLT2 == 1,
-			SU = cumsum(dstart_class_SU) > cumsum(dstop_class_SU) | dstart_class_SU==1 | dstop_class_SU == 1,
-			TZD = cumsum(dstart_class_TZD) > cumsum(dstop_class_TZD) | dstart_class_TZD==1 | dstop_class_TZD == 1,
-			
-			
-			`Albiglutide` = cumsum(`dstart_substance_Albiglutide`) > cumsum(`dstop_substance_Albiglutide`) | `dstart_substance_Albiglutide`==1 | `dstop_substance_Albiglutide` == 1,
-			`Alogliptin` = cumsum(`dstart_substance_Alogliptin`) > cumsum(`dstop_substance_Alogliptin`) | `dstart_substance_Alogliptin`==1 | `dstop_substance_Alogliptin` == 1,
-			`Canagliflozin` = cumsum(`dstart_substance_Canagliflozin`) > cumsum(`dstop_substance_Canagliflozin`) | `dstart_substance_Canagliflozin`==1 | `dstop_substance_Canagliflozin` == 1,
-			`Chlorpropamide` = cumsum(`dstart_substance_Chlorpropamide`) > cumsum(`dstop_substance_Chlorpropamide`) | `dstart_substance_Chlorpropamide`==1 | `dstop_substance_Chlorpropamide` == 1,
-			`Dapagliflozin` = cumsum(`dstart_substance_Dapagliflozin`) > cumsum(`dstop_substance_Dapagliflozin`) | `dstart_substance_Dapagliflozin`==1 | `dstop_substance_Dapagliflozin` == 1,
-			`Dulaglutide` = cumsum(`dstart_substance_Dulaglutide`) > cumsum(`dstop_substance_Dulaglutide`) | `dstart_substance_Dulaglutide`==1 | `dstop_substance_Dulaglutide` == 1,
-			`Empagliflozin` = cumsum(`dstart_substance_Empagliflozin`) > cumsum(`dstop_substance_Empagliflozin`) | `dstart_substance_Empagliflozin`==1 | `dstop_substance_Empagliflozin` == 1,
-			`Ertugliflozin` = cumsum(`dstart_substance_Ertugliflozin`) > cumsum(`dstop_substance_Ertugliflozin`) | `dstart_substance_Ertugliflozin`==1 | `dstop_substance_Ertugliflozin` == 1,
-			`Exenatide` = cumsum(`dstart_substance_Exenatide`) > cumsum(`dstop_substance_Exenatide`) | `dstart_substance_Exenatide`==1 | `dstop_substance_Exenatide` == 1,
-			`Exenatide prolonged-release` = cumsum(`dstart_substance_Exenatide prolonged-release`) > cumsum(`dstop_substance_Exenatide prolonged-release`) | `dstart_substance_Exenatide prolonged-release`==1 | `dstop_substance_Exenatide prolonged-release` == 1,
-			`Glibenclamide` = cumsum(`dstart_substance_Glibenclamide`) > cumsum(`dstop_substance_Glibenclamide`) | `dstart_substance_Glibenclamide`==1 | `dstop_substance_Glibenclamide` == 1,
-			`Gliclazide` = cumsum(`dstart_substance_Gliclazide`) > cumsum(`dstop_substance_Gliclazide`) | `dstart_substance_Gliclazide`==1 | `dstop_substance_Gliclazide` == 1,
-			`Glimepiride` = cumsum(`dstart_substance_Glimepiride`) > cumsum(`dstop_substance_Glimepiride`) | `dstart_substance_Glimepiride`==1 | `dstop_substance_Glimepiride` == 1,
-			`Glipizide` = cumsum(`dstart_substance_Glipizide`) > cumsum(`dstop_substance_Glipizide`) | `dstart_substance_Glipizide`==1 | `dstop_substance_Glipizide` == 1,
-			`Gliquidone` = cumsum(`dstart_substance_Gliquidone`) > cumsum(`dstop_substance_Gliquidone`) | `dstart_substance_Gliquidone`==1 | `dstop_substance_Gliquidone` == 1,
-			`Insulin` = cumsum(`dstart_substance_Insulin`) > cumsum(`dstop_substance_Insulin`) | `dstart_substance_Insulin`==1 | `dstop_substance_Insulin` == 1,
-			`Linagliptin` = cumsum(`dstart_substance_Linagliptin`) > cumsum(`dstop_substance_Linagliptin`) | `dstart_substance_Linagliptin`==1 | `dstop_substance_Linagliptin` == 1,
-			`Liraglutide` = cumsum(`dstart_substance_Liraglutide`) > cumsum(`dstop_substance_Liraglutide`) | `dstart_substance_Liraglutide`==1 | `dstop_substance_Liraglutide` == 1,
-			`Lixisenatide` = cumsum(`dstart_substance_Lixisenatide`) > cumsum(`dstop_substance_Lixisenatide`) | `dstart_substance_Lixisenatide`==1 | `dstop_substance_Lixisenatide` == 1,
-			`Low-dose semaglutide` = cumsum(`dstart_substance_Low-dose semaglutide`) > cumsum(`dstop_substance_Low-dose semaglutide`) | `dstart_substance_Low-dose semaglutide`==1 | `dstop_substance_Low-dose semaglutide` == 1,
-			`Metformin` = cumsum(`dstart_substance_Metformin`) > cumsum(`dstop_substance_Metformin`) | `dstart_substance_Metformin`==1 | `dstop_substance_Metformin` == 1,
-			`Oral semaglutide` = cumsum(`dstart_substance_Oral semaglutide`) > cumsum(`dstop_substance_Oral semaglutide`) | `dstart_substance_Oral semaglutide`==1 | `dstop_substance_Oral semaglutide` == 1,
-			`Pioglitazone` = cumsum(`dstart_substance_Pioglitazone`) > cumsum(`dstop_substance_Pioglitazone`) | `dstart_substance_Pioglitazone`==1 | `dstop_substance_Pioglitazone` == 1,
-			`Rosiglitazone` = cumsum(`dstart_substance_Rosiglitazone`) > cumsum(`dstop_substance_Rosiglitazone`) | `dstart_substance_Rosiglitazone`==1 | `dstop_substance_Rosiglitazone` == 1,
-			`Saxagliptin` = cumsum(`dstart_substance_Saxagliptin`) > cumsum(`dstop_substance_Saxagliptin`) | `dstart_substance_Saxagliptin`==1 | `dstop_substance_Saxagliptin` == 1,
-			`Sitagliptin` = cumsum(`dstart_substance_Sitagliptin`) > cumsum(`dstop_substance_Sitagliptin`) | `dstart_substance_Sitagliptin`==1 | `dstop_substance_Sitagliptin` == 1,
-			`Tolazamide` = cumsum(`dstart_substance_Tolazamide`) > cumsum(`dstop_substance_Tolazamide`) | `dstart_substance_Tolazamide`==1 | `dstop_substance_Tolazamide` == 1,
-			`Tolbutamide` = cumsum(`dstart_substance_Tolbutamide`) > cumsum(`dstop_substance_Tolbutamide`) | `dstart_substance_Tolbutamide`==1 | `dstop_substance_Tolbutamide` == 1,
-			`Troglitazone` = cumsum(`dstart_substance_Troglitazone`) > cumsum(`dstop_substance_Troglitazone`) | `dstart_substance_Troglitazone`==1 | `dstop_substance_Troglitazone` == 1,
-			`Vildagliptin` = cumsum(`dstart_substance_Vildagliptin`) > cumsum(`dstop_substance_Vildagliptin`) | `dstart_substance_Vildagliptin`==1 | `dstop_substance_Vildagliptin` == 1
+				DPP4 = cumsum(dstart_class_DPP4) > cumsum(dstop_class_DPP4) | dstart_class_DPP4==1 | dstop_class_DPP4 == 1,
+				GLP1 = cumsum(dstart_class_GLP1) > cumsum(dstop_class_GLP1) | dstart_class_GLP1==1 | dstop_class_GLP1 == 1,
+				INS = cumsum(dstart_class_INS) > cumsum(dstop_class_INS) | dstart_class_INS==1 | dstop_class_INS == 1,
+				MFN = cumsum(dstart_class_MFN) > cumsum(dstop_class_MFN) | dstart_class_MFN==1 | dstop_class_MFN == 1,
+				SGLT2 = cumsum(dstart_class_SGLT2) > cumsum(dstop_class_SGLT2) | dstart_class_SGLT2==1 | dstop_class_SGLT2 == 1,
+				SU = cumsum(dstart_class_SU) > cumsum(dstop_class_SU) | dstart_class_SU==1 | dstop_class_SU == 1,
+				TZD = cumsum(dstart_class_TZD) > cumsum(dstop_class_TZD) | dstart_class_TZD==1 | dstop_class_TZD == 1,
+				
+				
+				`Albiglutide` = cumsum(`dstart_substance_Albiglutide`) > cumsum(`dstop_substance_Albiglutide`) | `dstart_substance_Albiglutide`==1 | `dstop_substance_Albiglutide` == 1,
+				`Alogliptin` = cumsum(`dstart_substance_Alogliptin`) > cumsum(`dstop_substance_Alogliptin`) | `dstart_substance_Alogliptin`==1 | `dstop_substance_Alogliptin` == 1,
+				`Canagliflozin` = cumsum(`dstart_substance_Canagliflozin`) > cumsum(`dstop_substance_Canagliflozin`) | `dstart_substance_Canagliflozin`==1 | `dstop_substance_Canagliflozin` == 1,
+				`Chlorpropamide` = cumsum(`dstart_substance_Chlorpropamide`) > cumsum(`dstop_substance_Chlorpropamide`) | `dstart_substance_Chlorpropamide`==1 | `dstop_substance_Chlorpropamide` == 1,
+				`Dapagliflozin` = cumsum(`dstart_substance_Dapagliflozin`) > cumsum(`dstop_substance_Dapagliflozin`) | `dstart_substance_Dapagliflozin`==1 | `dstop_substance_Dapagliflozin` == 1,
+				`Dulaglutide` = cumsum(`dstart_substance_Dulaglutide`) > cumsum(`dstop_substance_Dulaglutide`) | `dstart_substance_Dulaglutide`==1 | `dstop_substance_Dulaglutide` == 1,
+				`Empagliflozin` = cumsum(`dstart_substance_Empagliflozin`) > cumsum(`dstop_substance_Empagliflozin`) | `dstart_substance_Empagliflozin`==1 | `dstop_substance_Empagliflozin` == 1,
+				`Ertugliflozin` = cumsum(`dstart_substance_Ertugliflozin`) > cumsum(`dstop_substance_Ertugliflozin`) | `dstart_substance_Ertugliflozin`==1 | `dstop_substance_Ertugliflozin` == 1,
+				`Exenatide` = cumsum(`dstart_substance_Exenatide`) > cumsum(`dstop_substance_Exenatide`) | `dstart_substance_Exenatide`==1 | `dstop_substance_Exenatide` == 1,
+				`Exenatide prolonged-release` = cumsum(`dstart_substance_Exenatide prolonged-release`) > cumsum(`dstop_substance_Exenatide prolonged-release`) | `dstart_substance_Exenatide prolonged-release`==1 | `dstop_substance_Exenatide prolonged-release` == 1,
+				`Glibenclamide` = cumsum(`dstart_substance_Glibenclamide`) > cumsum(`dstop_substance_Glibenclamide`) | `dstart_substance_Glibenclamide`==1 | `dstop_substance_Glibenclamide` == 1,
+				`Gliclazide` = cumsum(`dstart_substance_Gliclazide`) > cumsum(`dstop_substance_Gliclazide`) | `dstart_substance_Gliclazide`==1 | `dstop_substance_Gliclazide` == 1,
+				`Glimepiride` = cumsum(`dstart_substance_Glimepiride`) > cumsum(`dstop_substance_Glimepiride`) | `dstart_substance_Glimepiride`==1 | `dstop_substance_Glimepiride` == 1,
+				`Glipizide` = cumsum(`dstart_substance_Glipizide`) > cumsum(`dstop_substance_Glipizide`) | `dstart_substance_Glipizide`==1 | `dstop_substance_Glipizide` == 1,
+				`Gliquidone` = cumsum(`dstart_substance_Gliquidone`) > cumsum(`dstop_substance_Gliquidone`) | `dstart_substance_Gliquidone`==1 | `dstop_substance_Gliquidone` == 1,
+				`Insulin` = cumsum(`dstart_substance_Insulin`) > cumsum(`dstop_substance_Insulin`) | `dstart_substance_Insulin`==1 | `dstop_substance_Insulin` == 1,
+				`Linagliptin` = cumsum(`dstart_substance_Linagliptin`) > cumsum(`dstop_substance_Linagliptin`) | `dstart_substance_Linagliptin`==1 | `dstop_substance_Linagliptin` == 1,
+				`Liraglutide` = cumsum(`dstart_substance_Liraglutide`) > cumsum(`dstop_substance_Liraglutide`) | `dstart_substance_Liraglutide`==1 | `dstop_substance_Liraglutide` == 1,
+				`Lixisenatide` = cumsum(`dstart_substance_Lixisenatide`) > cumsum(`dstop_substance_Lixisenatide`) | `dstart_substance_Lixisenatide`==1 | `dstop_substance_Lixisenatide` == 1,
+				`Low-dose semaglutide` = cumsum(`dstart_substance_Low-dose semaglutide`) > cumsum(`dstop_substance_Low-dose semaglutide`) | `dstart_substance_Low-dose semaglutide`==1 | `dstop_substance_Low-dose semaglutide` == 1,
+				`Metformin` = cumsum(`dstart_substance_Metformin`) > cumsum(`dstop_substance_Metformin`) | `dstart_substance_Metformin`==1 | `dstop_substance_Metformin` == 1,
+				`Oral semaglutide` = cumsum(`dstart_substance_Oral semaglutide`) > cumsum(`dstop_substance_Oral semaglutide`) | `dstart_substance_Oral semaglutide`==1 | `dstop_substance_Oral semaglutide` == 1,
+				`Pioglitazone` = cumsum(`dstart_substance_Pioglitazone`) > cumsum(`dstop_substance_Pioglitazone`) | `dstart_substance_Pioglitazone`==1 | `dstop_substance_Pioglitazone` == 1,
+				`Rosiglitazone` = cumsum(`dstart_substance_Rosiglitazone`) > cumsum(`dstop_substance_Rosiglitazone`) | `dstart_substance_Rosiglitazone`==1 | `dstop_substance_Rosiglitazone` == 1,
+				`Saxagliptin` = cumsum(`dstart_substance_Saxagliptin`) > cumsum(`dstop_substance_Saxagliptin`) | `dstart_substance_Saxagliptin`==1 | `dstop_substance_Saxagliptin` == 1,
+				`Sitagliptin` = cumsum(`dstart_substance_Sitagliptin`) > cumsum(`dstop_substance_Sitagliptin`) | `dstart_substance_Sitagliptin`==1 | `dstop_substance_Sitagliptin` == 1,
+				`Tolazamide` = cumsum(`dstart_substance_Tolazamide`) > cumsum(`dstop_substance_Tolazamide`) | `dstart_substance_Tolazamide`==1 | `dstop_substance_Tolazamide` == 1,
+				`Tolbutamide` = cumsum(`dstart_substance_Tolbutamide`) > cumsum(`dstop_substance_Tolbutamide`) | `dstart_substance_Tolbutamide`==1 | `dstop_substance_Tolbutamide` == 1,
+				`Troglitazone` = cumsum(`dstart_substance_Troglitazone`) > cumsum(`dstop_substance_Troglitazone`) | `dstart_substance_Troglitazone`==1 | `dstop_substance_Troglitazone` == 1,
+				`Vildagliptin` = cumsum(`dstart_substance_Vildagliptin`) > cumsum(`dstop_substance_Vildagliptin`) | `dstart_substance_Vildagliptin`==1 | `dstop_substance_Vildagliptin` == 1
 		) %>%
 		ungroup()
 
@@ -438,55 +438,55 @@ all_scripts <- all_scripts %>%
 all_scripts <- all_scripts %>%
 		select(-c(starts_with("dstart"), starts_with("dstop"))) %>%
 		mutate(
-			drug_class_combo = paste0(ifelse(DPP4==1, "DPP4_", ""),
-					ifelse(GLP1==1, "GLP1_", ""),
-					ifelse(INS==1, "INS_", ""),
-					ifelse(MFN==1, "MFN_", ""),
-					ifelse(SGLT2==1, "SGLT2_", ""),
-					ifelse(SU==1, "SU_", ""),
-					ifelse(TZD==1, "TZD_", "")),
-			drug_class_combo = ifelse(str_sub(drug_class_combo, -1, -1)=="_", str_sub(drug_class_combo, 1, -2), drug_class_combo),
-			drug_substance_combo = paste0(ifelse(`Albiglutide`==1, "Albiglutide_", ""),
-					ifelse(`Alogliptin`==1, "Alogliptin_", ""),
-					ifelse(`Canagliflozin`==1, "Canagliflozin_", ""),
-					ifelse(`Chlorpropamide`==1, "Chlorpropamide_", ""),
-					ifelse(`Dapagliflozin`==1, "Dapagliflozin_", ""),
-					ifelse(`Dulaglutide`==1, "Dulaglutide_", ""),
-					ifelse(`Empagliflozin`==1, "Empagliflozin_", ""),
-					ifelse(`Ertugliflozin`==1, "Ertugliflozin_", ""),
-					ifelse('Exenatide'==1, "Exenatide_", ""),
-					ifelse(`Exenatide prolonged-release`==1, "Exenatide prolonged-release_", ""),
-					ifelse(`Glibenclamide`==1, "Glibenclamide_", ""),
-					ifelse(`Gliclazide`==1, "Gliclazide_", ""),
-					ifelse(`Glimepiride`==1, "Glimepiride_", ""),
-					ifelse(`Glipizide`==1, "Glipizide_", ""),
-					ifelse(`Gliquidone`==1, "Gliquidone_", ""),
-					ifelse(`Insulin`==1, "Insulin_", ""),
-					ifelse(`Linagliptin`==1, "Linagliptin_", ""),
-					ifelse(`Liraglutide`==1, "Liraglutide_", ""),
-					ifelse(`Lixisenatide`==1, "Lixisenatide_", ""),
-					ifelse(`Low-dose semaglutide`==1, "Low-dose semaglutide_", ""),
-					ifelse(`Metformin`==1, "Metformin_", ""),
-					ifelse(`Oral semaglutide`==1, "Oral semaglutide_", ""),
-					ifelse(`Pioglitazone`==1, "Pioglitazone_", ""),
-					ifelse(`Rosiglitazone`==1, "Rosiglitazone_", ""),
-					ifelse(`Saxagliptin`==1, "Saxagliptin_", ""),
-					ifelse(`Sitagliptin`==1, "Sitagliptin_", ""),
-					ifelse(`Tolazamide`==1, "Tolazamide_", ""),
-					ifelse(`Tolbutamide`==1, "Tolbutamide_", ""),
-					ifelse(`Troglitazone`==1, "Troglitazone_", ""),
-					ifelse(`Vildagliptin`==1, "Vildagliptin_", "")),
-			drug_substance_combo = ifelse(str_sub(drug_substance_combo, -1, -1)=="_", str_sub(drug_substance_combo, 1, -2), drug_substance_combo)
+				drug_class_combo = paste0(ifelse(DPP4==1, "DPP4_", ""),
+						ifelse(GLP1==1, "GLP1_", ""),
+						ifelse(INS==1, "INS_", ""),
+						ifelse(MFN==1, "MFN_", ""),
+						ifelse(SGLT2==1, "SGLT2_", ""),
+						ifelse(SU==1, "SU_", ""),
+						ifelse(TZD==1, "TZD_", "")),
+				drug_class_combo = ifelse(str_sub(drug_class_combo, -1, -1)=="_", str_sub(drug_class_combo, 1, -2), drug_class_combo),
+				drug_substance_combo = paste0(ifelse(`Albiglutide`==1, "Albiglutide_", ""),
+						ifelse(`Alogliptin`==1, "Alogliptin_", ""),
+						ifelse(`Canagliflozin`==1, "Canagliflozin_", ""),
+						ifelse(`Chlorpropamide`==1, "Chlorpropamide_", ""),
+						ifelse(`Dapagliflozin`==1, "Dapagliflozin_", ""),
+						ifelse(`Dulaglutide`==1, "Dulaglutide_", ""),
+						ifelse(`Empagliflozin`==1, "Empagliflozin_", ""),
+						ifelse(`Ertugliflozin`==1, "Ertugliflozin_", ""),
+						ifelse('Exenatide'==1, "Exenatide_", ""),
+						ifelse(`Exenatide prolonged-release`==1, "Exenatide prolonged-release_", ""),
+						ifelse(`Glibenclamide`==1, "Glibenclamide_", ""),
+						ifelse(`Gliclazide`==1, "Gliclazide_", ""),
+						ifelse(`Glimepiride`==1, "Glimepiride_", ""),
+						ifelse(`Glipizide`==1, "Glipizide_", ""),
+						ifelse(`Gliquidone`==1, "Gliquidone_", ""),
+						ifelse(`Insulin`==1, "Insulin_", ""),
+						ifelse(`Linagliptin`==1, "Linagliptin_", ""),
+						ifelse(`Liraglutide`==1, "Liraglutide_", ""),
+						ifelse(`Lixisenatide`==1, "Lixisenatide_", ""),
+						ifelse(`Low-dose semaglutide`==1, "Low-dose semaglutide_", ""),
+						ifelse(`Metformin`==1, "Metformin_", ""),
+						ifelse(`Oral semaglutide`==1, "Oral semaglutide_", ""),
+						ifelse(`Pioglitazone`==1, "Pioglitazone_", ""),
+						ifelse(`Rosiglitazone`==1, "Rosiglitazone_", ""),
+						ifelse(`Saxagliptin`==1, "Saxagliptin_", ""),
+						ifelse(`Sitagliptin`==1, "Sitagliptin_", ""),
+						ifelse(`Tolazamide`==1, "Tolazamide_", ""),
+						ifelse(`Tolbutamide`==1, "Tolbutamide_", ""),
+						ifelse(`Troglitazone`==1, "Troglitazone_", ""),
+						ifelse(`Vildagliptin`==1, "Vildagliptin_", "")),
+				drug_substance_combo = ifelse(str_sub(drug_substance_combo, -1, -1)=="_", str_sub(drug_substance_combo, 1, -2), drug_substance_combo)
 		)
 
 # Recalculate numdrugs (number of different drug classes patients is on at each date) and check it matches earlier calculation
 all_scripts <- all_scripts %>%
 		mutate(
-			numdrugs_class2 = DPP4 + GLP1 + INS + MFN + SGLT2 + SU + TZD,
-			numdrugs_substance2 = Albiglutide + Alogliptin + Canagliflozin + Chlorpropamide + Dapagliflozin + Dulaglutide + Empagliflozin +
-					Ertugliflozin + Exenatide + `Exenatide prolonged-release` + Glibenclamide + Gliclazide + Glimepiride + Glipizide + Gliquidone + Insulin +
-					Linagliptin + Liraglutide + Lixisenatide + `Low-dose semaglutide` + Metformin + `Oral semaglutide` + Pioglitazone + Rosiglitazone +
-					Saxagliptin + Sitagliptin + Tolazamide + Tolbutamide + Troglitazone + Vildagliptin
+				numdrugs_class2 = DPP4 + GLP1 + INS + MFN + SGLT2 + SU + TZD,
+				numdrugs_substance2 = Albiglutide + Alogliptin + Canagliflozin + Chlorpropamide + Dapagliflozin + Dulaglutide + Empagliflozin +
+						Ertugliflozin + Exenatide + `Exenatide prolonged-release` + Glibenclamide + Gliclazide + Glimepiride + Glipizide + Gliquidone + Insulin +
+						Linagliptin + Liraglutide + Lixisenatide + `Low-dose semaglutide` + Metformin + `Oral semaglutide` + Pioglitazone + Rosiglitazone +
+						Saxagliptin + Sitagliptin + Tolazamide + Tolbutamide + Troglitazone + Vildagliptin
 		)
 
 #all_scripts %>% filter(numdrugs_class!=numdrugs_class2 | is.na(numdrugs_class) | is.na(numdrugs_class2)) %>% nrow()
@@ -506,19 +506,19 @@ all_scripts_class <- all_scripts %>%
 		arrange(date) %>%
 		filter(numstart_class > 0 | numstop_class > 0) %>%
 		mutate(
-			dcnextuse_class = difftime(lead(date), date, units = "days"),
-			dcprevuse_class = difftime(date, lag(date), units = "days")
+				dcnextuse_class = difftime(lead(date), date, units = "days"),
+				dcprevuse_class = difftime(date, lag(date), units = "days")
 		) %>%
 		ungroup()
-		
+
 
 all_scripts_substance <- all_scripts %>%
 		group_by(serialno) %>%
 		arrange(date) %>%
 		filter(numstart_substance > 0 | numstop_substance > 0) %>%
 		mutate(
-			dcnextuse_substance = difftime(lead(date), date, units = "days"),
-			dcprevuse_substance = difftime(date, lag(date), units = "days")
+				dcnextuse_substance = difftime(lead(date), date, units = "days"),
+				dcprevuse_substance = difftime(date, lag(date), units = "days")
 		) %>%
 		ungroup()
 
@@ -529,8 +529,8 @@ all_scripts_class <- all_scripts_class %>%
 		group_by(serialno) %>%
 		arrange(date) %>%
 		mutate(
-			dcstart_class = ifelse(numstart_class > 0, 1, 0),
-			dcstop_class = ifelse(numstop_class > 0, 1, 0)
+				dcstart_class = ifelse(numstart_class > 0, 1, 0),
+				dcstop_class = ifelse(numstop_class > 0, 1, 0)
 		) %>%
 		ungroup()
 
@@ -578,12 +578,12 @@ all_scripts <- all_scripts_substance %>%
 all_scripts <- all_scripts %>%
 		group_by(serialno) %>%
 		mutate(
-			timetolastpx = difftime(max(date, na.rm = TRUE), date, units = "days")
+				timetolastpx = difftime(max(date, na.rm = TRUE), date, units = "days")
 		) %>%
 		ungroup() %>%
 		mutate(
-			dcstart_class = ifelse(is.na(dcstart_class), 0, dcstart_class),
-			dcstop_class = ifelse(is.na(dcstop_class), 0, dcstop_class)
+				dcstart_class = ifelse(is.na(dcstart_class), 0, dcstart_class),
+				dcstop_class = ifelse(is.na(dcstop_class), 0, dcstop_class)
 		)
 
 #all_scripts %>% nrow()
@@ -605,11 +605,11 @@ drug_class_start_stop <- all_scripts_long %>%
 		group_by(serialno, drug_class) %>%
 		arrange(date) %>%
 		mutate(
-			dstartdate_class = ifelse(dstart_class==1, date, as.Date(NA)),
-			dstartdate_class = as.Date(dstartdate_class, origin = "1970-01-01"),
-			dstopdate_class = ifelse(dstart_class==1 & dstop_class==1, date,
-					ifelse(dstart_class==1 & dstop_class==0, lead(date), as.Date(NA))),
-			dstopdate_class = as.Date(dstopdate_class, origin = "1970-01-01")
+				dstartdate_class = ifelse(dstart_class==1, date, as.Date(NA)),
+				dstartdate_class = as.Date(dstartdate_class, origin = "1970-01-01"),
+				dstopdate_class = ifelse(dstart_class==1 & dstop_class==1, date,
+						ifelse(dstart_class==1 & dstop_class==0, lead(date), as.Date(NA))),
+				dstopdate_class = as.Date(dstopdate_class, origin = "1970-01-01")
 		) %>%
 		ungroup()
 
@@ -677,11 +677,11 @@ drug_substance_start_stop <- all_scripts_long %>%
 		group_by(serialno, drug_substance) %>%
 		arrange(date) %>%
 		mutate(
-			dstartdate_substance = ifelse(dstart_substance==1, date, as.Date(NA)),
-			dstartdate_substance = as.Date(dstartdate_substance, origin = "1970-01-01"),
-			dstopdate_substance = ifelse(dstart_substance==1 & dstop_substance == 1, date,
-					ifelse(dstart_substance==1 & dstop_substance==0, lead(date), as.Date(NA))),
-			dstopdate_substance = as.Date(dstopdate_substance, origin = "1970-01-01")
+				dstartdate_substance = ifelse(dstart_substance==1, date, as.Date(NA)),
+				dstartdate_substance = as.Date(dstartdate_substance, origin = "1970-01-01"),
+				dstopdate_substance = ifelse(dstart_substance==1 & dstop_substance == 1, date,
+						ifelse(dstart_substance==1 & dstop_substance==0, lead(date), as.Date(NA))),
+				dstopdate_substance = as.Date(dstopdate_substance, origin = "1970-01-01")
 		) %>%
 		ungroup()
 
@@ -703,21 +703,21 @@ save(drug_substance_start_stop, file = "/home/pcardoso/workspace/SDRN-Cohort-scr
 drug_start_stop <- drug_substance_start_stop %>%
 		left_join(drug_class_start_stop, by = c("serialno", "drug_class", c("dstartdate_substance" = "dstartdate_class"))) %>%
 		mutate(
-			drug_class_start = ifelse(!is.na(dstopdate_class), 1, 0)
+				drug_class_start = ifelse(!is.na(dstopdate_class), 1, 0)
 		) %>%
 		group_by(serialno, drug_class) %>%
 		arrange(dstartdate_substance) %>%
 		mutate(
-			drug_class_starts = cumsum(drug_class_start==1)
+				drug_class_starts = cumsum(drug_class_start==1)
 		) %>%
 		arrange() %>%
 		ungroup() %>%
 		group_by(serialno, drug_class, drug_class_starts) %>%
 		mutate(
-			drug_order = max(drug_order, na.rm = TRUE),
-			drug_instance = max(drug_instance, na.rm = TRUE),
-			drugline_all = max(drugline_all, na.rm = TRUE),
-			dstopdate_class = max(dstopdate_class, na.rm = TRUE)
+				drug_order = max(drug_order, na.rm = TRUE),
+				drug_instance = max(drug_instance, na.rm = TRUE),
+				drugline_all = max(drugline_all, na.rm = TRUE),
+				dstopdate_class = max(dstopdate_class, na.rm = TRUE)
 		) %>%
 		ungroup() %>%
 		select(serialno, dstartdate=dstartdate_substance, drug_class_start, drug_class, dstopdate_class, drug_order, drug_instance, drugline_all, drug_substance, dstopdate_substance)
@@ -735,33 +735,33 @@ drug_start_stop <- drug_start_stop %>%
 		mutate(total_substance_count = n()) %>%
 		ungroup() %>%
 		mutate(
-			substance_status = ifelse(total_substance_count == 1, 0,
-					ifelse(total_substance_count>1 & drug_class_start==1 & dstopdate_substance==dstopdate_class, 1,
-							ifelse(total_substance_count>1 & drug_class_start==1 & dstopdate_substance<dstopdate_class, 2,
-									ifelse(total_substance_count>1 & drug_class_start==0, 3, NA))))
+				substance_status = ifelse(total_substance_count == 1, 0,
+						ifelse(total_substance_count>1 & drug_class_start==1 & dstopdate_substance==dstopdate_class, 1,
+								ifelse(total_substance_count>1 & drug_class_start==1 & dstopdate_substance<dstopdate_class, 2,
+										ifelse(total_substance_count>1 & drug_class_start==0, 3, NA))))
 		) %>%
 		
 		group_by(serialno, drug_class, drug_order, substance_status) %>%
 		arrange(drug_substance) %>%
 		mutate(
-			substance_status_count=n(),
-			substance_order=row_number()
+				substance_status_count=n(),
+				substance_order=row_number()
 		) %>%
 		arrange() %>%
 		ungroup() %>%
 		
 		mutate(
-			substance_status = ifelse(substance_status_count==1, substance_status,
-					ifelse(substance_status_count>1 & substance_order==1, paste0(substance_status, "a"),
-							ifelse(substance_status_count>1 & substance_order==2, paste0(substance_status, "b"),
-									ifelse(substance_status_count>1 & substance_order==3, paste0(substance_status, "c"),
-											ifelse(substance_status_count>1 & substance_order==4, paste0(substance_status, "d"),
-													ifelse(substance_status_count>1 & substance_order==5, paste0(substance_status, "e"),
-															ifelse(substance_status_count>1 & substance_order==6, paste0(substance_status, "f"),
-																	ifelse(substance_status_count>1 & substance_order==7, paste0(substance_status, "g"),
-																			ifelse(substance_status_count>1 & substance_order==8, paste0(substance_status, "h"),
-																					ifelse(substance_status_count>1 & substance_order==9, paste0(substance_status, "i"),
-																							ifelse(substance_status_count>1 & substance_order==10, paste0(substance_status, "j"), NA)))))))))))
+				substance_status = ifelse(substance_status_count==1, substance_status,
+						ifelse(substance_status_count>1 & substance_order==1, paste0(substance_status, "a"),
+								ifelse(substance_status_count>1 & substance_order==2, paste0(substance_status, "b"),
+										ifelse(substance_status_count>1 & substance_order==3, paste0(substance_status, "c"),
+												ifelse(substance_status_count>1 & substance_order==4, paste0(substance_status, "d"),
+														ifelse(substance_status_count>1 & substance_order==5, paste0(substance_status, "e"),
+																ifelse(substance_status_count>1 & substance_order==6, paste0(substance_status, "f"),
+																		ifelse(substance_status_count>1 & substance_order==7, paste0(substance_status, "g"),
+																				ifelse(substance_status_count>1 & substance_order==8, paste0(substance_status, "h"),
+																						ifelse(substance_status_count>1 & substance_order==9, paste0(substance_status, "i"),
+																								ifelse(substance_status_count>1 & substance_order==10, paste0(substance_status, "j"), NA)))))))))))
 		) %>%
 		select(serialno, dstartdate, drug_class_start, drug_class, dstopdate_class, drug_order, drug_instance, drugline_all, drug_substance, substance_status, dstopdate_substance)
 
@@ -788,11 +788,11 @@ combo_class_start_stop <- all_scripts %>%
 		group_by(serialno) %>%
 		arrange(date) %>%
 		mutate(
-			dcstartdate = ifelse(dcstart_class==1, date, as.Date(NA)),
-			dcstartdate = as.Date(dcstartdate, origin = "1970-01-01"),
-			dcstopdate = ifelse(dcstart_class==1 & dcstop_class==1, date,
-					ifelse(dcstart_class==1 & dcstop_class==0, lead(date), as.Date(NA))),
-			dcstopdate = as.Date(dcstopdate, origin = "1970-01-01")
+				dcstartdate = ifelse(dcstart_class==1, date, as.Date(NA)),
+				dcstartdate = as.Date(dcstartdate, origin = "1970-01-01"),
+				dcstopdate = ifelse(dcstart_class==1 & dcstop_class==1, date,
+						ifelse(dcstart_class==1 & dcstop_class==0, lead(date), as.Date(NA))),
+				dcstopdate = as.Date(dcstopdate, origin = "1970-01-01")
 		) %>%
 		ungroup()
 
@@ -812,9 +812,9 @@ combo_class_start_stop <- combo_class_start_stop %>%
 		group_by(serialno) %>%
 		arrange(dcstartdate) %>%
 		mutate(
-			drugcomboorder=row_number(),
-			nextdcdate = ifelse(is.na(lead(dcstartdate)), dcstopdate, lead(dcstartdate)),
-			nextdcdate = as.Date(nextdcdate, origin = "1970-01-01")
+				drugcomboorder=row_number(),
+				nextdcdate = ifelse(is.na(lead(dcstartdate)), dcstopdate, lead(dcstartdate)),
+				nextdcdate = as.Date(nextdcdate, origin = "1970-01-01")
 		) %>%
 		ungroup()
 
@@ -822,14 +822,14 @@ combo_class_start_stop <- combo_class_start_stop %>%
 
 combo_class_start_stop <- combo_class_start_stop %>%
 		mutate(
-			add = 0,
-			adddrug = as.character(NA),
-			rem = 0,
-			remdrug = as.character(NA),
-			nextadd = 0,
-			nextadddrug = as.character(NA),
-			nextrem = 0,
-			nextremdrug = as.character(NA)
+				add = 0,
+				adddrug = as.character(NA),
+				rem = 0,
+				remdrug = as.character(NA),
+				nextadd = 0,
+				nextadddrug = as.character(NA),
+				nextrem = 0,
+				nextremdrug = as.character(NA)
 		)
 
 for (drug_col in drugclasses) {
@@ -862,24 +862,24 @@ for (drug_col in drugclasses) {
 combo_class_start_stop <- combo_class_start_stop %>%
 		
 		mutate(
-			swap = add>=1 & rem >=1,
-			nextswap = nextadd>=1 & nextrem>=1,
-			
-			drugchange = case_when(
-				add>=1 & rem==0 ~ "add",
-				add==0 & rem>=1 ~ "remove",
-				add>=1 & rem>=1 ~ "swap",
-				add==0 & rem==0 & drugcomboorder==1 ~ "start of px",
-				add==0 & rem==0 & drugcomboorder!=1 ~ "stop - break"
-			),
-			
-			nextdrugchange = case_when(
-				nextadd>=1 & nextrem==0 ~ "add",
-				nextadd==0 & nextrem>=1 ~ "remove",
-				nextadd>=1 & nextrem>=1 ~ "swap",
-				nextadd==0 & nextrem==0 & nextdcdate!=dcstopdate ~ "stop - break",
-				nextadd==0 & nextrem==0 & nextdcdate==dcstopdate ~ "stop - end of px"
-			)
+				swap = add>=1 & rem >=1,
+				nextswap = nextadd>=1 & nextrem>=1,
+				
+				drugchange = case_when(
+						add>=1 & rem==0 ~ "add",
+						add==0 & rem>=1 ~ "remove",
+						add>=1 & rem>=1 ~ "swap",
+						add==0 & rem==0 & drugcomboorder==1 ~ "start of px",
+						add==0 & rem==0 & drugcomboorder!=1 ~ "stop - break"
+				),
+				
+				nextdrugchange = case_when(
+						nextadd>=1 & nextrem==0 ~ "add",
+						nextadd==0 & nextrem>=1 ~ "remove",
+						nextadd>=1 & nextrem>=1 ~ "swap",
+						nextadd==0 & nextrem==0 & nextdcdate!=dcstopdate ~ "stop - break",
+						nextadd==0 & nextrem==0 & nextdcdate==dcstopdate ~ "stop - end of px"
+				)
 		) %>%
 		mutate_if(is.logical, as.numeric)
 
@@ -889,12 +889,12 @@ combo_class_start_stop <- combo_class_start_stop %>%
 		group_by(serialno) %>%
 		arrange(dcstartdate) %>%
 		mutate(
-			datechange_class = ifelse(is.na(lead(dcstartdate)) | difftime(lead(dcstartdate), dcstopdate, units = "days")>183, dcstopdate, lead(dcstartdate)),
-			datechange_class = as.Date(datechange_class, origin = "1970-01-01"),
-			dateaddrem_class = ifelse(is.na(lead(dcstartdate)), NA, lead(dcstartdate)),
-			dateaddrem_class = as.Date(dateaddrem_class, origin = "1970-01-01"),
-			dateprevcombo_class = lag(dcstartdate),
-			dateprevcombo_class = as.Date(dateprevcombo_class, origin = "1970-01-01")
+				datechange_class = ifelse(is.na(lead(dcstartdate)) | difftime(lead(dcstartdate), dcstopdate, units = "days")>183, dcstopdate, lead(dcstartdate)),
+				datechange_class = as.Date(datechange_class, origin = "1970-01-01"),
+				dateaddrem_class = ifelse(is.na(lead(dcstartdate)), NA, lead(dcstartdate)),
+				dateaddrem_class = as.Date(dateaddrem_class, origin = "1970-01-01"),
+				dateprevcombo_class = lag(dcstartdate),
+				dateprevcombo_class = as.Date(dateprevcombo_class, origin = "1970-01-01")
 		) %>%
 		ungroup()
 
@@ -902,10 +902,10 @@ combo_class_start_stop <- combo_class_start_stop %>%
 
 combo_class_start_stop <- combo_class_start_stop %>%
 		mutate(
-			multi_drug_start_class = ifelse(add>1 | (drugcomboorder==1 & numdrugs_class>1), 1, 0),
-			timetochange_class = difftime(datechange_class, dcstartdate, units = "days"),
-			timetoaddrem_class = difftime(dateaddrem_class, dcstartdate, units = "days"),
-			timeprevcombo_class = difftime(dcstartdate, dateprevcombo_class)
+				multi_drug_start_class = ifelse(add>1 | (drugcomboorder==1 & numdrugs_class>1), 1, 0),
+				timetochange_class = difftime(datechange_class, dcstartdate, units = "days"),
+				timetoaddrem_class = difftime(dateaddrem_class, dcstartdate, units = "days"),
+				timeprevcombo_class = difftime(dcstartdate, dateprevcombo_class)
 		)
 
 #combo_class_start_stop %>% nrow()
@@ -999,7 +999,7 @@ for (drug_col in drugsubstances) {
 			ungroup()
 	
 }
-	
+
 
 combo_substance_start_stop <- combo_substance_start_stop %>%
 		
@@ -1069,18 +1069,18 @@ save(combo_substance_start_stop, file = "/home/pcardoso/workspace/SDRN-Cohort-sc
 combo_start_stop <- combo_substance_start_stop %>%
 		select(serialno, dcstartdate, dcstopdate_substance=dcstopdate, drug_substance_combo, datechange_substance, dateaddrem_substance, dateprevcombo_substance, multi_drug_start_substance, all_of(drugsubstances), timetochange_substance, timetoaddrem_substance, timeprevcombo_substance) %>%
 		left_join(
-			combo_class_start_stop %>%
-					select(serialno, dcstartdate, dcstopdate_class=dcstopdate, drug_class_combo, datechange_class, dateaddrem_class, dateprevcombo_class, multi_drug_start_class, all_of(drugclasses), timetochange_class, timetoaddrem_class, timeprevcombo_class),
-			by = c("serialno", "dcstartdate")
+				combo_class_start_stop %>%
+						select(serialno, dcstartdate, dcstopdate_class=dcstopdate, drug_class_combo, datechange_class, dateaddrem_class, dateprevcombo_class, multi_drug_start_class, all_of(drugclasses), timetochange_class, timetoaddrem_class, timeprevcombo_class),
+				by = c("serialno", "dcstartdate")
 		) %>%
 		mutate(
-			drug_class_combo_change = ifelse(!is.na(dcstopdate_class), 1, 0)
+				drug_class_combo_change = ifelse(!is.na(dcstopdate_class), 1, 0)
 		) %>%
 		
 		group_by(serialno) %>%
 		arrange(dcstartdate) %>%
 		mutate(
-			drug_class_changes = cumsum(drug_class_combo_change==1)
+				drug_class_changes = cumsum(drug_class_combo_change==1)
 		) %>%
 		arrange() %>%
 		ungroup()
@@ -1088,25 +1088,25 @@ combo_start_stop <- combo_substance_start_stop %>%
 combo_start_stop <- combo_start_stop %>%
 		group_by(serialno, drug_class_changes) %>%
 		mutate(
-			datechange_class = as.Date(datechange_class, origin = "1970-01-01"),
-			dateaddrem_class = as.Date(dateaddrem_class, origin = "1970-01-01"),
-			dateprevcombo_class = as.Date(dateprevcombo_class, origin = "1970-01-01"),
-			
-			DPP4 = max(DPP4, na.rm = TRUE),
-			GLP1 = max(GLP1, na.rm = TRUE),
-			INS = max(INS, na.rm = TRUE),
-			MFN = max(MFN, na.rm = TRUE),
-			SGLT2 = max(SGLT2, na.rm = TRUE),
-			SU = max(SU, na.rm = TRUE),
-			TZD = max(TZD, na.rm = TRUE)
+				datechange_class = as.Date(datechange_class, origin = "1970-01-01"),
+				dateaddrem_class = as.Date(dateaddrem_class, origin = "1970-01-01"),
+				dateprevcombo_class = as.Date(dateprevcombo_class, origin = "1970-01-01"),
+				
+				DPP4 = max(DPP4, na.rm = TRUE),
+				GLP1 = max(GLP1, na.rm = TRUE),
+				INS = max(INS, na.rm = TRUE),
+				MFN = max(MFN, na.rm = TRUE),
+				SGLT2 = max(SGLT2, na.rm = TRUE),
+				SU = max(SU, na.rm = TRUE),
+				TZD = max(TZD, na.rm = TRUE)
 		) %>%
 		
 		ungroup() %>%
 		
 		mutate(
-			timetochange_class = difftime(datechange_class, dcstartdate, units = "days"),
-			timetoaddrem_class = difftime(dateaddrem_class, dcstartdate, units = "days"),
-			timeprevcombo_class = difftime(dcstartdate, dateprevcombo_class, units = "days")
+				timetochange_class = difftime(datechange_class, dcstartdate, units = "days"),
+				timetoaddrem_class = difftime(dateaddrem_class, dcstartdate, units = "days"),
+				timeprevcombo_class = difftime(dcstartdate, dateprevcombo_class, units = "days")
 		) %>%
 		
 		select(serialno, dcstartdate, dcstopdate_class, drug_class_combo, timetochange_class, timetoaddrem_class, timeprevcombo_class, multi_drug_start_class, all_of(drugclasses), dcstopdate_substance, drug_substance_combo, timetochange_substance, timetoaddrem_substance, timeprevcombo_substance, multi_drug_start_substance, all_of(drugsubstances)) %>%

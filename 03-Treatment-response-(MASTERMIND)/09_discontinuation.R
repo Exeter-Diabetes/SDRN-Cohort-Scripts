@@ -43,12 +43,12 @@ discontinuation <- discontinuation %>%
 # Add binary variables for whether drug stopped within 3/6/12 months
 discontinuation <- discontinuation %>%
 		mutate(
-			ttc3m = timeondrug<=91,
-			ttc3m = as.numeric(ttc3m),
-			ttc6m = timeondrug<=183,
-			ttc6m = as.numeric(ttc6m),
-			ttc12m = timeondrug<=365,
-			ttc12m = as.numeric(ttc12m)
+				ttc3m = timeondrug<=91,
+				ttc3m = as.numeric(ttc3m),
+				ttc6m = timeondrug<=183,
+				ttc6m = as.numeric(ttc6m),
+				ttc12m = timeondrug<=365,
+				ttc12m = as.numeric(ttc12m)
 		)
 
 
@@ -64,20 +64,20 @@ discontinuation <- discontinuation %>%
 discontinuation <- discontinuation %>%
 		
 		mutate(
-			stopdrug_3m_3mFU = ifelse(ttc3m==0, 0,
-					ifelse(ttc3m==1 & (timetolastpx-timeondrug)>91, 1, NA)),
-			stopdrug_3m_6mFU = ifelse(ttc3m==0, 0,
-					ifelse(ttc3m==1 & (timetolastpx-timeondrug)>183, 1, NA)),
-			
-			stopdrug_6m_3mFU = ifelse(ttc6m==0, 0,
-					ifelse(ttc6m==1 & (timetolastpx-timeondrug)>91, 1, NA)),
-			stopdrug_6m_6mFU = ifelse(ttc6m==0, 0,
-					ifelse(ttc6m==1 & (timetolastpx-timeondrug)>183, 1, NA)),
-			
-			stopdrug_12m_3mFU = ifelse(ttc12m==0, 0,
-					ifelse(ttc12m==1 & (timetolastpx-timeondrug)>91, 1, NA)),
-			stopdrug_12m_6mFU = ifelse(ttc12m==0, 0,
-					ifelse(ttc12m==1 & (timetolastpx-timeondrug)>183, 1, NA))
+				stopdrug_3m_3mFU = ifelse(ttc3m==0, 0,
+						ifelse(ttc3m==1 & (timetolastpx-timeondrug)>91, 1, NA)),
+				stopdrug_3m_6mFU = ifelse(ttc3m==0, 0,
+						ifelse(ttc3m==1 & (timetolastpx-timeondrug)>183, 1, NA)),
+				
+				stopdrug_6m_3mFU = ifelse(ttc6m==0, 0,
+						ifelse(ttc6m==1 & (timetolastpx-timeondrug)>91, 1, NA)),
+				stopdrug_6m_6mFU = ifelse(ttc6m==0, 0,
+						ifelse(ttc6m==1 & (timetolastpx-timeondrug)>183, 1, NA)),
+				
+				stopdrug_12m_3mFU = ifelse(ttc12m==0, 0,
+						ifelse(ttc12m==1 & (timetolastpx-timeondrug)>91, 1, NA)),
+				stopdrug_12m_6mFU = ifelse(ttc12m==0, 0,
+						ifelse(ttc12m==1 & (timetolastpx-timeondrug)>183, 1, NA))
 		)
 
 
@@ -90,20 +90,20 @@ discontinuation <- discontinuation %>%
 
 discontinuation <- discontinuation %>%
 		mutate(
-			mfn_date = ifelse(drug_class == "MFN", dstopdate_class, dstartdate_class),
-			mfn_date = as.Date(mfn_date, origin = "1970-01-01"),
-			stopdrug_3m_3mFU_MFN = ifelse(is.na(stopdrug_3m_3mFU) | drug_class!="MFN", NA,
-					ifelse(drug_class=="MFN" & stopdrug_3m_3mFU==0, 0, 1)),
-			stopdrug_3m_6mFU_MFN = ifelse(is.na(stopdrug_3m_6mFU) | drug_class!="MFN", NA,
-					ifelse(drug_class=="MFN" & stopdrug_3m_6mFU==0, 0, 1)),
-			stopdrug_6m_3mFU_MFN = ifelse(is.na(stopdrug_6m_3mFU) | drug_class!="MFN", NA,
-					ifelse(drug_class=="MFN" & stopdrug_6m_3mFU==0, 0, 1)),
-			stopdrug_6m_6mFU_MFN = ifelse(is.na(stopdrug_6m_6mFU) | drug_class!="MFN", NA,
-					ifelse(drug_class=="MFN" & stopdrug_6m_6mFU==0, 0, 1)),
-			stopdrug_12m_3mFU_MFN = ifelse(is.na(stopdrug_12m_3mFU) | drug_class!="MFN", NA,
-					ifelse(drug_class=="MFN" & stopdrug_12m_3mFU==0, 0, 1)),
-			stopdrug_12m_6mFU_MFN = ifelse(is.na(stopdrug_12m_6mFU) | drug_class!="MFN", NA,
-					ifelse(drug_class=="MFN" & stopdrug_12m_6mFU==0, 0, 1))
+				mfn_date = ifelse(drug_class == "MFN", dstopdate_class, dstartdate_class),
+				mfn_date = as.Date(mfn_date, origin = "1970-01-01"),
+				stopdrug_3m_3mFU_MFN = ifelse(is.na(stopdrug_3m_3mFU) | drug_class!="MFN", NA,
+						ifelse(drug_class=="MFN" & stopdrug_3m_3mFU==0, 0, 1)),
+				stopdrug_3m_6mFU_MFN = ifelse(is.na(stopdrug_3m_6mFU) | drug_class!="MFN", NA,
+						ifelse(drug_class=="MFN" & stopdrug_3m_6mFU==0, 0, 1)),
+				stopdrug_6m_3mFU_MFN = ifelse(is.na(stopdrug_6m_3mFU) | drug_class!="MFN", NA,
+						ifelse(drug_class=="MFN" & stopdrug_6m_3mFU==0, 0, 1)),
+				stopdrug_6m_6mFU_MFN = ifelse(is.na(stopdrug_6m_6mFU) | drug_class!="MFN", NA,
+						ifelse(drug_class=="MFN" & stopdrug_6m_6mFU==0, 0, 1)),
+				stopdrug_12m_3mFU_MFN = ifelse(is.na(stopdrug_12m_3mFU) | drug_class!="MFN", NA,
+						ifelse(drug_class=="MFN" & stopdrug_12m_3mFU==0, 0, 1)),
+				stopdrug_12m_6mFU_MFN = ifelse(is.na(stopdrug_12m_6mFU) | drug_class!="MFN", NA,
+						ifelse(drug_class=="MFN" & stopdrug_12m_6mFU==0, 0, 1))
 		) %>%
 		group_by(serialno) %>%
 		arrange(mfn_date) %>%

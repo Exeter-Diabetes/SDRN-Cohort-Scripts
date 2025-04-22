@@ -47,18 +47,20 @@ con <- dbConn("NDS_2023")
 
 # Define comorbidities
 ## If you add comorbidity to the end of this list, code should run fine to incorporate new comorbidity
-## Missing = fh_diabetes, fh_premature_cvd, frailty_simple, hosp_cause_majoramputation, hosp_cause_minoramputation, osteoporosis, photocoagulation, revasc, solidorgantransplant
+## fh_diabetes = codded based on specific table s_cd_diabetes
+## Missing = fh_premature_cvd, frailty_simple, hosp_cause_majoramputation, hosp_cause_minoramputation, osteoporosis, photocoagulation, revasc, solidorgantransplant
 
 comorbids <- c(
 		"af", "angina", "anxiety_disorders", "asthma", "benignprostatehyperplasia", "bronchiectasis",
 		"ckd5_code", "cld", "copd", "cysticfibrosis", "dementia", "diabeticnephropathy", "dka",
-		"falls", "fh_diabetes", "fh_premature_cvd", "frailty_simple", "haem_cancer", 
-		"heartfailure", "hosp_cause_majoramputation", "hosp_cause_minoramputation", "hypertension", "ihd",  "incident_mi",
+		"falls", "frailty_simple", "haem_cancer", 
+		"heartfailure", "hypertension", "ihd",  "incident_mi",
 		"incident_stroke", "lowerlimbfracture", "micturition_control", "myocardialinfarction", "neuropathy",
 		"osteoporosis", "otherneuroconditions", "pad", "photocoagulation", "pulmonaryfibrosis", "pulmonaryhypertension", "retinopathy",
 		"revasc", "rheumatoidarthritis", "solid_cancer", "solidorgantransplant", "stroke", "tia", "unstableangina", "urinary_frequency",
 		"vitreoushemorrhage", "volume_depletion"
 )
+
 
 ###############################################################################
 
@@ -75,8 +77,8 @@ for (i in comorbids) {
 	if (file.exists(codelist_name_icd10)) {
 		
 		codelist <- clean_codes(read.delim(codelist_name_icd10) %>%
-				select(-Term_description) %>%
-				unlist())
+						select(-Term_description) %>%
+						unlist())
 		
 		raw_tablename <- paste0("raw_", i, "_icd10")
 		
@@ -131,7 +133,7 @@ codelist_primary_hff <- clean_codes(read.delim("/home/pcardoso/workspace/SDRN-Co
 				unlist())
 
 raw_primary_hhf_icd10 <- dbGetQueryMap(con, paste0("
-					SELECT o_condition.* 
+						SELECT o_condition.* 
 						FROM o_condition, o_concept_condition 
 						WHERE
 						o_concept_condition.name = 'icd10' AND o_concept_condition.uid = o_condition.concept_id AND
@@ -143,7 +145,7 @@ codelist_incident_mi <- clean_codes(read.delim("/home/pcardoso/workspace/SDRN-Co
 				unlist())
 
 raw_primary_incident_mi_icd10 <- dbGetQueryMap(con, paste0("
-					SELECT o_condition.* 
+						SELECT o_condition.* 
 						FROM o_condition, o_concept_condition 
 						WHERE
 						o_concept_condition.name = 'icd10' AND o_concept_condition.uid = o_condition.concept_id AND
@@ -155,13 +157,13 @@ codelist_incident_stroke <- clean_codes(read.delim("/home/pcardoso/workspace/SDR
 				unlist())
 
 raw_primary_incident_stroke_icd10 <- dbGetQueryMap(con, paste0("
-					SELECT o_condition.* 
+						SELECT o_condition.* 
 						FROM o_condition, o_concept_condition 
 						WHERE
 						o_concept_condition.name = 'icd10' AND o_concept_condition.uid = o_condition.concept_id AND
 						o_concept_condition.path LIKE 'smr01-diag1%' AND o_concept_condition.path NOT LIKE '%causeofdeath%' AND
 						(", paste("o_condition.condition_code LIKE ", paste(paste("'", codelist_incident_stroke, "%'", sep = ""), collapse = " OR o_condition.condition_code LIKE ")), ")"))
-		
+
 comorbids <- c("primary_hhf", "primary_incident_mi", "primary_incident_stroke", comorbids)
 
 
@@ -176,12 +178,30 @@ comorbids <- c("primary_hhf", "primary_incident_mi", "primary_incident_stroke", 
 
 ### Separate family history by whether positive or negative
 #### Add to beginning of list
-#raw_fh_diabetes_positive_medcodes <- raw_fh_diabetes_medcodes %>% fitler(fh_diabetes_cat!="negative")
-#raw_fh_diabetes_negative_medcodes <- raw_fh_diabetes_medcodes %>% fitler(fh_diabetes_cat=="negative")
-#comorbids <- setdiff(comorbids, "fh_diabetes")
-#comorbids <- c("fh_diabetes_positive", "fh_diabetes_negative", comorbids)
+raw_fh_diabetes_medcodes <- dbGetQueryMap(con, "
+					SELECT s_cd_diabetes.serialno, s_cd_diabetes.dataitemdate, s_cd_diabetes.mappeddataitemvalue
+					FROM s_cd_diabetes
+					WHERE
+						s_cd_diabetes.dataitemlabel = 'FamilyHistory'
+					") %>%
+	rename("date" = "dataitemdate", "fh_diabetes_cat" = "mappeddataitemvalue") %>%
+	mutate(date = as.Date(date, origin = "1970-01-01"))
+
+raw_fh_diabetes_positive_medcodes <- raw_fh_diabetes_medcodes %>%
+		filter(!(fh_diabetes_cat %in% c("No", "Not Known")))
+	
+raw_fh_diabetes_negative_medcodes <- raw_fh_diabetes_medcodes %>%
+		filter(fh_diabetes_cat %in% c("No"))
 
 
+## Minor and Major amputation
+## hosp_cause_majoramputation, hosp_cause_minoramputation
+#test <- dbGetQueryMap(con, "
+#					SELECT o_observation.* 
+#					FROM o_concept_observation, o_observation 
+#					WHERE 
+#						o_concept_observation.path = 'lower_limb-amputation-amput_l' AND
+#						o_concept_observation.uid = o_observation.concept_id")
 
 ## disconnect from database
 dbDisconnect(con)
@@ -219,7 +239,6 @@ for (i in comorbids) {
 				select(serialno, date = startdate, code = condition.code)
 		
 	}
-	
 	
 	if (exists("icd10_codes")) {
 		
@@ -259,13 +278,23 @@ for (i in comorbids) {
 	
 }
 
+## Fh_diabetes
+full_fh_diabetes_negative_drug_merge <- raw_fh_diabetes_negative_medcodes %>%
+		inner_join((drug_start_stop %>% select(serialno, dstartdate, drug_class, drug_substance, drug_instance)), by = c("serialno")) %>%
+		mutate(drugdatediff = difftime(date, dstartdate, units = "days"))
+
+full_fh_diabetes_positive_drug_merge <- raw_fh_diabetes_positive_medcodes %>%
+		inner_join((drug_start_stop %>% select(serialno, dstartdate, drug_class, drug_substance, drug_instance)), by = c("serialno")) %>%
+		mutate(drugdatediff = difftime(date, dstartdate, units = "days"))
+
+
 
 ###############################################################################
 
 # Find earliest predrug, lastest predrug and first postdrug dates
 ## Leave amputation and family history of diabetes for now as need to be processed differently
 
-cmorbids <- setdiff(comorbids, c("hosp_cause_majoramputation", "hosp_cause_minoramputation", "fh_diabetes_positive", "fh_diabetes_negative"))
+comorbids <- setdiff(comorbids, c("hosp_cause_majoramputation", "hosp_cause_minoramputation"))
 
 comorbidities <- drug_start_stop %>%
 		select(serialno, dstartdate, drug_class, drug_substance, drug_instance)
@@ -317,12 +346,48 @@ for (i in comorbids) {
 
 # Make separate tables for amputation and fh_diabetes as need to combine 2 x amputation codes / combine positive and negative fh_diabetes codes first
 
+drug_start_stop <- drug_start_stop %>%
+		select(serialno, dstartdate, drug_substance)
+
+## Amputation variable - use earliest of...
+
 #
 # Not coded
 #
 #
 #
 
+## Family History of diabetes - binary variable or missing
+fh_diabetes_positive_latest <- full_fh_diabetes_positive_drug_merge %>%
+		filter(date<=dstartdate) %>%
+		group_by(serialno, dstartdate, drug_substance) %>%
+		summarise(fh_diabetes_positive_latest = max(date, na.rm = TRUE)) %>%
+		ungroup()
+
+fh_diabetes_negative_latest <- full_fh_diabetes_negative_drug_merge %>%
+		filter(date<=dstartdate) %>%
+		group_by(serialno, dstartdate, drug_substance) %>%
+		summarise(fh_diabetes_negative_latest = max(date, na.rm = TRUE)) %>%
+		ungroup()
+
+fh_diabetes <- drug_start_stop %>%
+		left_join(fh_diabetes_positive_latest, by = c("serialno", "dstartdate", "drug_substance")) %>%
+		left_join(fh_diabetes_negative_latest, by = c("serialno", "dstartdate", "drug_substance")) %>%
+		mutate(
+				fh_diabetes = ifelse(!is.na(fh_diabetes_positive_latest) & !is.na(fh_diabetes_negative_latest) & fh_diabetes_positive_latest == fh_diabetes_negative_latest, NA,
+						ifelse(!is.na(fh_diabetes_positive_latest) & !is.na(fh_diabetes_negative_latest) & fh_diabetes_positive_latest > fh_diabetes_negative_latest, 1L,
+								ifelse(!is.na(fh_diabetes_positive_latest) & !is.na(fh_diabetes_negative_latest) & fh_diabetes_positive_latest < fh_diabetes_negative_latest, 0L,
+										ifelse(!is.na(fh_diabetes_positive_latest) & is.na(fh_diabetes_negative_latest), 1L,
+												ifelse(is.na(fh_diabetes_positive_latest) & !is.na(fh_diabetes_negative_latest), 0L, NA)))))
+		) %>%
+		select(serialno, dstartdate, drug_substance, fh_diabetes)
+
+
+###############################################################################
+
+# Join comorbidities with family history
+comorbidities <- comorbidities %>%
+		left_join(fh_diabetes, by = c("serialno", "dstartdate", "drug_substance"))
 
 save(comorbidities, file = "/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_comorbidities.RData")
 
