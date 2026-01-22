@@ -56,8 +56,8 @@ graph TD;
     A---R
     R-->|"08_alcohol"|D["<b>Alcohol consumption status</b> <br> at drug <br> start date"]
  
-    A-->Z[ ]:::empty
-    H---Z
+    H-->Z[ ]:::empty
+    A---Z
     Z-->|"05_ckd_stages"|I["<b>CKD stage </b> <br> at drug <br> start date"]
 
     B-->|"11_<br>final_merge"|J["<b>Final cohort dataset</b>"]

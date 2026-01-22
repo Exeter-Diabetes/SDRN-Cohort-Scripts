@@ -132,7 +132,7 @@ ckd_stages_from_algorithm <- ckd_stages_from_algorithm %>%
 ## Get raw CKD5 codes and clean
 
 ## connection to database
-con <- dbConn("NDS_2023")
+con <- dbConn("NDS_2024")
 
 # Define comorbidities
 ## If you add comorbidity to the end of this list, code should run fine to incorporate new comorbidity

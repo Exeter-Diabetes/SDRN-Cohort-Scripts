@@ -15,7 +15,7 @@ library(tidyverse)
 ###############################################################################
 
 ## connection to database
-con <- dbConn("NDS_2023")
+con <- dbConn("NDS_2024")
 
 # Pull out all raw code instances for smoking
 #[1] "LRA-CTN-10" "LRA-CTN-11" "LRA-CTN-12" "LRA-CTN-13" "LRA-CTN-23"
@@ -149,7 +149,7 @@ smoking_cat <- diabetes_cohort %>%
 # Work out smoking status from QRISK2 algorithm
 
 ## connection to database
-con <- dbConn("NDS_2023")
+con <- dbConn("NDS_2024")
 
 # number of cigs a day
 raw_cigs_day_medcodes <- dbGetQueryMap(con, "

@@ -17,7 +17,7 @@ drug_class_table <- readRDS("/home/pcardoso/workspace/SDRN-Cohort-scripts/Codeli
 ###############################################################################
 
 ## connection to database
-con <- dbConn("NDS_2023")
+con <- dbConn("NDS_2024")
 
 ## Select Metformin initiations for type 2 diabetes patients
 mfn_initiations <- dbGetQueryMap(con, "

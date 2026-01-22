@@ -13,7 +13,7 @@ library(tidyverse)
 ###############################################################################
 
 ## connection to database
-con <- dbConn("NDS_2023")
+con <- dbConn("NDS_2024")
 
 # currently only including type 1 and type 2
 

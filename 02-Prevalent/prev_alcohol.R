@@ -15,7 +15,7 @@ library(tidyverse)
 ###############################################################################
 
 ## connection to database
-con <- dbConn("NDS_2023")
+con <- dbConn("NDS_2024")
 
 # Pull out all raw code instances for smoking
 #[1] "LRA-CADS-00" "LRA-CADS-01" "LRA-CADS-02" "LRA-CADS-03" "LRA-CADS-04"

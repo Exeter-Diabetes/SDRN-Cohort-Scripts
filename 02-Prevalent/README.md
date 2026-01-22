@@ -62,7 +62,7 @@ Comorbidities included: atrial fibrillation, angina (overall and specifically un
 | Variable name | Description | Notes on derivation |
 | --- | --- | --- |
 | patid | unique patient identifier | |
-| index_date | index date (e.g. diagnosis date for 'at-diagnosis' cohort, 01/02/2020 for prevalent cohort, drug start date for treatment response cohort) | |
+| index_date | index date (e.g. diagnosis date for 'at-diagnosis' cohort, 01/11/2022 for prevalent cohort, drug start date for treatment response cohort) | |
 | gender | gender (1=male, 2=female) | |
 | dob | date of birth | if month and date missing, 1st July used, if date but not month missing, 15th of month used, or earliest medcode in year of birth if this is earlier |
 | ethnicity_5cat | 5-category ethnicity: (0=White, 1=South Asian, 2=Black, 3=Other, 4=Mixed) | |
