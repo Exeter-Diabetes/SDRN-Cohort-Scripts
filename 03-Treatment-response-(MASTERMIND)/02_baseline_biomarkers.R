@@ -9,6 +9,7 @@ rm(list=ls())
 
 # load libraries
 library(tidyverse)
+library(data.table)
 
 
 ###############################################################################
@@ -118,7 +119,43 @@ load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_combo_sta
 drug_start_dates <- drug_start_stop %>%
 		left_join(combo_start_stop, by = c("serialno", "dstartdate" = "dcstartdate"))
 
-## Merge with biomarkers and calculate date difference between biomarker and drug start date
+# ## Merge with biomarkers and calculate date difference between biomarker and drug start date
+# for (i in c(biomarkers, "hba1c")) {
+	
+# 	print(i)
+	
+# 	clean_tablename <- paste0("clean_", i, "_medcodes")
+# 	drug_merge_tablename <- paste0("full_", i, "_drug_merge")
+	
+# 	data <- get(clean_tablename) %>%
+# 			inner_join(drug_start_dates, by = c("serialno")) %>%
+# 			mutate(drugdatediff = difftime(date, dstartdate, units = "days"))
+	
+# 	assign(drug_merge_tablename, data)
+	
+# }
+
+
+## Memory-safe join: limit cartesian explosion by only joining rows within +/- 2 years and +7 days of drug start
+non_equi_join_biomarkers <- function(clean_df, drug_dates, lower_days = -730L, upper_days = 7L) {
+
+	clean_dt <- as.data.table(clean_df)
+	drug_dt <- as.data.table(drug_dates)
+
+	drug_dt[, `:=`(
+			window_start = dstartdate + lower_days,
+			window_end = dstartdate + upper_days
+	)]
+
+	out <- clean_dt[drug_dt, on = .(serialno, date >= window_start, date <= window_end), allow.cartesian = TRUE]
+
+	out[, drugdatediff := as.numeric(date - dstartdate)]
+
+	out[, c("window_start", "window_end") := NULL]
+
+	return(out[])
+}
+
 for (i in c(biomarkers, "hba1c")) {
 	
 	print(i)
@@ -126,9 +163,7 @@ for (i in c(biomarkers, "hba1c")) {
 	clean_tablename <- paste0("clean_", i, "_medcodes")
 	drug_merge_tablename <- paste0("full_", i, "_drug_merge")
 	
-	data <- get(clean_tablename) %>%
-			inner_join(drug_start_dates, by = c("serialno")) %>%
-			mutate(drugdatediff = difftime(date, dstartdate, units = "days"))
+	data <- non_equi_join_biomarkers(get(clean_tablename), drug_start_dates)
 	
 	assign(drug_merge_tablename, data)
 	
