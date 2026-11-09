@@ -131,6 +131,30 @@ ckd_stages_from_algorithm <- ckd_stages_from_algorithm %>%
 
 ## Get raw CKD5 codes and clean
 
+## use_saved_data = TRUE: no database access needed. The earliest CKD5 code date per person is taken from the saved
+## mm_comorbidities.RData (04_comorbidities.R pulls the same ckd5_code ICD10/OPCS4 SMR codes: predrug_earliest_ckd5_code is the
+## earliest code on/before a drug start, postdrug_first_ckd5_code the first after it; the minimum over all of a person's drug
+## periods is their earliest code). Only people with a drug period are covered, which is all this script uses.
+## use_saved_data = FALSE: read the codes from the database
+use_saved_data <- TRUE
+
+if (use_saved_data) {
+
+	load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_comorbidities.RData")
+
+	earliest_clean_ckd5 <- comorbidities %>%
+			select(serialno, predrug_earliest_ckd5_code, postdrug_first_ckd5_code) %>%
+			mutate(date = pmin(predrug_earliest_ckd5_code, postdrug_first_ckd5_code, na.rm = TRUE)) %>%
+			filter(!is.na(date)) %>%
+			group_by(serialno) %>%
+			summarise(first_test_date = as.Date(min(date, na.rm = TRUE), origin = "1970-01-01")) %>%
+			ungroup()
+
+	rm(comorbidities)
+	gc()
+
+} else {
+
 ## connection to database
 con <- dbConn("NDS_2024")
 
@@ -214,6 +238,9 @@ earliest_clean_ckd5 <- raw_ckd5_code_icd10 %>%
 		group_by(serialno) %>%
 		summarise(first_test_date = min(date, na.rm = TRUE)) %>%
 		ungroup()
+
+}
+## end of use_saved_data
 
 ## Combine CKD5 and other codes
 ckd_stages_from_algorithm <- ckd_stages_from_algorithm %>%

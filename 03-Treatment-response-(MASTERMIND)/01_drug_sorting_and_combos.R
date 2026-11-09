@@ -16,31 +16,25 @@ drug_class_table <- readRDS("/home/pcardoso/workspace/SDRN-Cohort-scripts/Codeli
 
 ###############################################################################
 
-## use_saved_data = TRUE: no database access needed. The drug eras are rebuilt from the saved
-## mm_all_scripts_long.RData (substance periods). Tested on made-up data: gives exactly the same
-## all_scripts_long as starting from o_drug_era (substance periods are already merged eras, and class
-## periods built from them are the same as class periods built from the eras)
+## use_saved_data = TRUE: no database access needed. The drug eras are replaced by the substance periods saved in
+## mm_drug_substance_start_stop.RData (made further down in this script; 1 row per substance period, the same in the
+## old and new versions of this script). Tested on made-up data: gives exactly the same all_scripts_long as starting
+## from o_drug_era (substance periods are already merged eras, and class periods built from them are the same as
+## class periods built from the eras)
 ## use_saved_data = FALSE: read the drug eras from the database
 use_saved_data <- TRUE
-saved_scripts_file <- "/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_all_scripts_long.RData"
 
 if (use_saved_data) {
-
-	load(saved_scripts_file)
-
-	## one row per substance period (start date to stop date), same columns as oha_list below
-	oha_list <- all_scripts_long %>%
-			filter(dstart_substance == 1 | dstop_substance == 1) %>%
-			group_by(serialno, drug_class, drug_substance) %>%
-			arrange(date, desc(dstart_substance), .by_group = TRUE) %>%
-			mutate(period = cumsum(dstart_substance)) %>%
-			group_by(serialno, drug_class, drug_substance, period) %>%
-			summarise(startdate = min(date), enddate = max(date), .groups = "drop") %>%
-			select(serialno, startdate, enddate, drug_class, drug_substance)
-
-	rm(all_scripts_long)
+	
+	load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_drug_substance_start_stop.RData")
+	
+	## same columns as oha_list below
+	oha_list <- drug_substance_start_stop %>%
+			select(serialno, startdate = dstartdate_substance, enddate = dstopdate_substance, drug_class, drug_substance)
+	
+	rm(drug_substance_start_stop)
 	gc()
-
+	
 } else {
 
 ## connection to database
