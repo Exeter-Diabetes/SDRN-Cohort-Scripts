@@ -140,7 +140,17 @@ use_saved_data <- TRUE
 
 if (use_saved_data) {
 
-	load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_comorbidities.RData")
+	## if mm_comorbidities.RData is missing, use the last saved final dataset (same columns, type 2 first instances only,
+	## which is all the final cohort uses)
+	if (file.exists("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_comorbidities.RData")) {
+		load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_comorbidities.RData")
+	} else {
+		old_final_files <- sort(list.files("/home/pcardoso/workspace/SDRN-Cohort-scripts/Final_Datasets/", pattern = "^mm_[0-9]{8}_t2d_1stinstance\\.RData$", full.names = TRUE))
+		print(paste("CKD5 codes from", tail(old_final_files, 1)))
+		load(tail(old_final_files, 1))
+		comorbidities <- t2d_1stinstance
+		rm(t2d_1stinstance)
+	}
 
 	earliest_clean_ckd5 <- comorbidities %>%
 			select(serialno, predrug_earliest_ckd5_code, postdrug_first_ckd5_code) %>%

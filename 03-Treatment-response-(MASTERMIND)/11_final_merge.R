@@ -34,17 +34,35 @@ load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_combo_sta
 load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_response_biomarkers.RData") # includes baseline biomarker values for first instance drug periods so no need to use baseline_biomarkers table
 load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_ckd_stages.RData")
 
-## Comorbidities and eFI (eFI not inc. right now)
-load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_comorbidities.RData")
+## Comorbidities, non-diabetes meds, smoking and alcohol (04, 06, 07, 08)
+## If their interim files are missing (no database access to re-run 04-08), these variables are taken from the
+## last saved final dataset (Final_Datasets/mm_{date}_t2d_1stinstance.RData, same NDS_2024 data and same 04-08 code).
+## Joined by serialno + dstartdate + drug_substance; drug starts not in the old dataset (e.g. Exenatide starts that the old
+## 01 dropped) get missing values for these variables (count printed below)
+covariate_files <- paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_", c("comorbidities", "non_diabetes_meds", "smoking", "alcohol"), ".RData")
+use_old_final_covariates <- !all(file.exists(covariate_files))
 
-## Non-diabetes meds
-load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_non_diabetes_meds.RData")
+if (use_old_final_covariates) {
 
-## Smoking status at drug start
-load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_smoking.RData")
+	old_final_files <- sort(list.files("/home/pcardoso/workspace/SDRN-Cohort-scripts/Final_Datasets/", pattern = "^mm_[0-9]{8}_t2d_1stinstance\\.RData$", full.names = TRUE))
+	old_final_files <- old_final_files[!grepl(today, old_final_files)]
+	print(paste("Covariates from", tail(old_final_files, 1)))
+	load(tail(old_final_files, 1))
+	old_1stinstance <- t2d_1stinstance
+	rm(t2d_1stinstance)
 
-## Alcohol at drug start
-load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_alcohol.RData")
+} else {
+
+	## Comorbidities and eFI (eFI not inc. right now)
+	load(covariate_files[1])
+	## Non-diabetes meds
+	load(covariate_files[2])
+	## Smoking status at drug start
+	load(covariate_files[3])
+	## Alcohol at drug start
+	load(covariate_files[4])
+
+}
 
 ## Discontinuation
 load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_discontinuation.RData")
@@ -101,12 +119,43 @@ all_diabetes_1stinstance %>% distinct(serialno) %>% nrow()
 
 all_diabetes_1stinstance <- all_diabetes_1stinstance %>%
 		inner_join((response_biomarkers %>% select(-c(drug_class, drug_instance, timeprevcombo_class))), by = c("serialno", "dstartdate", "drug_substance")) %>%
-		inner_join((ckd_stages %>% select(-c(drug_class, drug_instance))), by = c("serialno", "dstartdate", "drug_substance")) %>%
-		inner_join((comorbidities %>% select(-c(drug_class, drug_instance))), by = c("serialno", "dstartdate", "drug_substance")) %>%
-#		inner_join((efi %>% select(-c(drug_class, drug_instance))), by = c("serialno", "dstartdate", "drug_substance"))
-		inner_join((non_diabetes_meds %>% select(-c(drug_class, drug_instance))), by = c("serialno", "dstartdate", "drug_substance")) %>%
-		inner_join((smoking %>% select(-c(drug_class, drug_instance))), by = c("serialno", "dstartdate", "drug_substance")) %>%
-		inner_join((alcohol %>% select(-c(drug_class, drug_instance))), by = c("serialno", "dstartdate", "drug_substance")) %>%
+		inner_join((ckd_stages %>% select(-c(drug_class, drug_instance))), by = c("serialno", "dstartdate", "drug_substance"))
+
+if (use_old_final_covariates) {
+
+	## only the variables that are not made by the other (re-run) tables: comorbidities, non-diabetes meds, smoking, alcohol
+	new_names <- unique(c(names(all_diabetes_1stinstance), names(death_causes), names(glycaemic_failure), names(discontinuation),
+					"dstartdate_age", "dstartdate_age_all", "dstartdate_dm_dur", "dstartdate_dm_dur_all"))
+	old_covariates <- old_1stinstance %>%
+			select(serialno, dstartdate, drug_substance, all_of(setdiff(names(old_1stinstance), new_names))) %>%
+			distinct(serialno, dstartdate, drug_substance, .keep_all = TRUE) %>%
+			mutate(in_old_final = 1)
+	rm(old_1stinstance)
+
+	all_diabetes_1stinstance <- all_diabetes_1stinstance %>%
+			left_join(old_covariates, by = c("serialno", "dstartdate", "drug_substance"))
+
+	tmp <- all_diabetes_1stinstance %>% filter(diabetes_type == "type 2")
+	cat("F1 old covariate columns:", ncol(old_covariates) - 4, "\n")
+	cat("F2 T2 first-instance starts without old covariates:", sum(is.na(tmp$in_old_final)), "of", nrow(tmp),
+			"(", round(100*mean(is.na(tmp$in_old_final)), 1), "% )\n")
+	cat("F3 by class (% missing):", paste(tmp %>% group_by(drug_class) %>% summarise(p = round(100*mean(is.na(in_old_final)), 1)) %>%
+							mutate(x = paste0(drug_class, " ", p)) %>% pull(x), collapse = "; "), "\n")
+	all_diabetes_1stinstance <- all_diabetes_1stinstance %>% select(-in_old_final)
+	rm(tmp, old_covariates)
+
+} else {
+
+	all_diabetes_1stinstance <- all_diabetes_1stinstance %>%
+			inner_join((comorbidities %>% select(-c(drug_class, drug_instance))), by = c("serialno", "dstartdate", "drug_substance")) %>%
+#			inner_join((efi %>% select(-c(drug_class, drug_instance))), by = c("serialno", "dstartdate", "drug_substance"))
+			inner_join((non_diabetes_meds %>% select(-c(drug_class, drug_instance))), by = c("serialno", "dstartdate", "drug_substance")) %>%
+			inner_join((smoking %>% select(-c(drug_class, drug_instance))), by = c("serialno", "dstartdate", "drug_substance")) %>%
+			inner_join((alcohol %>% select(-c(drug_class, drug_instance))), by = c("serialno", "dstartdate", "drug_substance"))
+
+}
+
+all_diabetes_1stinstance <- all_diabetes_1stinstance %>%
 		left_join(death_causes, by = "serialno") %>%
 		mutate(
 				dstartdate_age = as.numeric(difftime(dstartdate, dob, units = "days"))/365.25,

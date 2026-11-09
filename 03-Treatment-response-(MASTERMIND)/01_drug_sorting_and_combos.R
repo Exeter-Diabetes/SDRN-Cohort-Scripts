@@ -26,13 +26,44 @@ use_saved_data <- TRUE
 
 if (use_saved_data) {
 	
-	load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_drug_substance_start_stop.RData")
-	
-	## same columns as oha_list below
-	oha_list <- drug_substance_start_stop %>%
-			select(serialno, startdate = dstartdate_substance, enddate = dstopdate_substance, drug_class, drug_substance)
-	
-	rm(drug_substance_start_stop)
+	## mm_drug_start_stop.RData has the same substance periods (dstartdate = substance start date, plus dstopdate_substance),
+	## so it is used if mm_drug_substance_start_stop.RData is not there
+	saved_dir <- "/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/"
+
+	if (file.exists(paste0(saved_dir, "mm_drug_substance_start_stop.RData"))) {
+
+		load(paste0(saved_dir, "mm_drug_substance_start_stop.RData"))
+
+		## same columns as oha_list below
+		oha_list <- drug_substance_start_stop %>%
+				select(serialno, startdate = dstartdate_substance, enddate = dstopdate_substance, drug_class, drug_substance)
+
+		rm(drug_substance_start_stop)
+
+	} else if (file.exists(paste0(saved_dir, "mm_drug_start_stop.RData"))) {
+
+		load(paste0(saved_dir, "mm_drug_start_stop.RData"))
+
+		oha_list <- drug_start_stop %>%
+				select(serialno, startdate = dstartdate, enddate = dstopdate_substance, drug_class, drug_substance)
+
+		rm(drug_start_stop)
+
+	} else {
+
+		## last resort: the drug_start_stop copy saved by 11_final_merge.R (type 2 diabetes only, which is all the final cohort uses)
+		old_final_files <- sort(list.files("/home/pcardoso/workspace/SDRN-Cohort-scripts/Final_Datasets/", pattern = "^mm_[0-9]{8}_t2d_all_drug_periods\\.RData$", full.names = TRUE))
+		print(paste("Drug periods from", tail(old_final_files, 1)))
+		load(tail(old_final_files, 1))
+
+		oha_list <- t2d_all_drug_periods %>%
+				select(serialno, startdate = dstartdate, enddate = dstopdate_substance, drug_class, drug_substance)
+
+		rm(t2d_all_drug_periods)
+
+	}
+
+	oha_list <- oha_list %>% distinct()
 	gc()
 	
 } else {
