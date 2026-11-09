@@ -50,8 +50,11 @@ for (i in 1:length(biomarkers)) {
 	data <- dbGetQueryMap(con, mysqlquery) %>%
 			select(serialno, date, "testvalue" = num.value) %>%
 			drop_na(testvalue) %>%
-			filter(testvalue >= min_limits[i] & testvalue <= max_limits[i])
-	
+			filter(testvalue >= min_limits[i] & testvalue <= max_limits[i]) %>%
+			## as CPRD: average multiple readings on the same day
+			group_by(serialno, date) %>%
+			summarise(testvalue = mean(testvalue, na.rm = TRUE), .groups = "drop")
+
 	assign(clean_tablename, data)
 	
 }
@@ -140,6 +143,9 @@ drug_start_dates <- drug_start_stop %>%
 non_equi_join_biomarkers <- function(clean_df, drug_dates, lower_days = -730L, upper_days = 7L) {
 
 	clean_dt <- as.data.table(clean_df)
+	## keep a copy of the real biomarker date: in a data.table non-equi join the join column 'date'
+	## is returned with the values of window_start (and 'date.1' with window_end), not the biomarker date
+	clean_dt[, obs_date := date]
 	drug_dt <- as.data.table(drug_dates)
 
 	drug_dt[, `:=`(
@@ -147,11 +153,13 @@ non_equi_join_biomarkers <- function(clean_df, drug_dates, lower_days = -730L, u
 			window_end = dstartdate + upper_days
 	)]
 
-	out <- clean_dt[drug_dt, on = .(serialno, date >= window_start, date <= window_end), allow.cartesian = TRUE]
+	out <- clean_dt[drug_dt, on = .(serialno, date >= window_start, date <= window_end), allow.cartesian = TRUE, nomatch = NULL]
+
+	out[, date := obs_date]
+
+	out[, intersect(c("obs_date", "date.1", "window_start", "window_end"), names(out)) := NULL]
 
 	out[, drugdatediff := as.numeric(date - dstartdate)]
-
-	out[, c("window_start", "window_end") := NULL]
 
 	return(out[])
 }

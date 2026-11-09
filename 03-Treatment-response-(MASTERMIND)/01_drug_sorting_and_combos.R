@@ -277,18 +277,47 @@ all_scripts_long <- oha_list %>%
 				interim_start_stop = dstart_substance + dstop_substance
 		) %>%
 		filter(interim_start_stop > 0) %>%
-		select(-interim_start_stop) %>%
-		## drug_class start and end
-		group_by(serialno, drug_class) %>%
-		arrange(date) %>%
+		select(-interim_start_stop)
+
+## drug_class start and end
+### Built straight from the eras with the same overlap method as for substances (not from the substance start/stop rows:
+### that split class periods when a substance stopped >183 days before another substance of the same class restarted,
+### even if a third substance of that class was still being taken)
+### Class start/stop dates always fall on a substance start/stop row; if several substances start/stop on that day, flag only one row
+make_periods <- function(eras, group_var) {
+	eras %>%
+			filter(as.numeric(difftime(enddate, startdate, units = "days")) > 0) %>%
+			select(serialno, grp = all_of(group_var), startdate, enddate) %>%
+			{ bind_rows(transmute(., serialno, grp, date = startdate, s = 1, e = 0),
+						transmute(., serialno, grp, date = enddate, s = 0, e = 1)) } %>%
+			group_by(serialno, grp) %>%
+			arrange(date, desc(s), .by_group = TRUE) %>%   # same-day start before stop, so touching eras merge
+			mutate(n_open = cumsum(s) - cumsum(e)) %>%
+			filter((s == 1 & n_open == 1) | (e == 1 & n_open == 0)) %>%
+			mutate(
+					dstart = as.numeric(s == 1 & (is.na(lag(date)) | as.numeric(difftime(date, lag(date), units = "days")) > 183)),
+					dstop = as.numeric(e == 1 & (is.na(lead(date)) | as.numeric(difftime(lead(date), date, units = "days")) > 183))
+			) %>%
+			ungroup() %>%
+			filter(dstart == 1 | dstop == 1) %>%
+			select(serialno, grp, date, dstart, dstop)
+}
+
+class_periods <- make_periods(oha_list, "drug_class")
+
+all_scripts_long <- all_scripts_long %>%
+		left_join(class_periods %>% filter(dstart == 1) %>% select(serialno, drug_class = grp, date, class_start = dstart), by = c("serialno", "drug_class", "date")) %>%
+		left_join(class_periods %>% filter(dstop == 1) %>% select(serialno, drug_class = grp, date, class_stop = dstop), by = c("serialno", "drug_class", "date")) %>%
+		group_by(serialno, drug_class, date) %>%
 		mutate(
-				dstart_class = ifelse(dstart_substance == 1 & lag(dstart_substance) %in% c(NA), 1, 
-						ifelse(dstart_substance == 1 & lag(dstart_substance) == 0 & difftime(date, lag(date), units = "days") > 183, 1, 0)),
-				dstop_class = ifelse(dstop_substance == 1 & is.na(lead(dstop_substance)), 1,
-						ifelse(dstop_substance == 1 & lead(dstop_substance) == 0 & difftime(lead(date), date, units = "days") > 183, 1, 0))
+				dstart_class = as.numeric(!is.na(class_start) & dstart_substance == 1 & cumsum(dstart_substance == 1) == 1),
+				dstop_class = as.numeric(!is.na(class_stop) & dstop_substance == 1 & cumsum(dstop_substance == 1) == 1)
 		) %>%
 		ungroup() %>%
+		select(-class_start, -class_stop) %>%
 		arrange(serialno, date)
+
+rm(class_periods)
 
 
 
@@ -368,6 +397,27 @@ all_scripts <- all_scripts_class_wide %>%
 
 #all_scripts %>% nrow()
 #2301488
+
+# Time to last prescription date for each patient (any drug class) - calculated here, before the marker rows below are added
+last_px <- all_scripts %>%
+		group_by(serialno) %>%
+		summarise(last_px_date = max(date, na.rm = TRUE), .groups = "drop")
+
+# Add a 'marker' row on the day after every drug stop (if there is no row on that day already)
+## all_scripts only has era start/stop dates, and on a stop date the stopped drug still counts as active
+## Without these rows, the drug combination after a drug is removed (e.g. MFN_SGLT2 -> SGLT2) never exists, so removals
+## are not seen as combination changes (CPRD has a row for every prescription so does not need this)
+stop_markers <- all_scripts %>%
+		filter(numstop_class > 0 | numstop_substance > 0) %>%
+		transmute(serialno, date = date + 1) %>%
+		distinct() %>%
+		anti_join(all_scripts %>% select(serialno, date), by = c("serialno", "date"))
+
+all_scripts <- all_scripts %>%
+		bind_rows(stop_markers) %>%
+		mutate(across(c(starts_with("dstart_"), starts_with("dstop_"), starts_with("numstart_"), starts_with("numstop_")), ~ coalesce(.x, 0)))
+
+rm(stop_markers)
 
 # Use numstart and numstop to work out total number of drug classes patient is on at each date (numdrugs; they can be on a drug even if not prescribed on that date)
 ## Add numstop to numdrugs so that drug stopped is included in numdrugs count on the date it is stopped
@@ -454,7 +504,7 @@ all_scripts <- all_scripts %>%
 						ifelse(`Dulaglutide`==1, "Dulaglutide_", ""),
 						ifelse(`Empagliflozin`==1, "Empagliflozin_", ""),
 						ifelse(`Ertugliflozin`==1, "Ertugliflozin_", ""),
-						ifelse('Exenatide'==1, "Exenatide_", ""),
+						ifelse(`Exenatide`==1, "Exenatide_", ""),
 						ifelse(`Exenatide prolonged-release`==1, "Exenatide prolonged-release_", ""),
 						ifelse(`Glibenclamide`==1, "Glibenclamide_", ""),
 						ifelse(`Gliclazide`==1, "Gliclazide_", ""),
@@ -495,96 +545,39 @@ all_scripts <- all_scripts %>%
 #0 - perfect
 
 
-# Define whether date is start or stop for each drug combination
-## Coded differently to drug classes as patient can only be on one combination at once
-## Find time from previous script (dcprevuse) and to next script (dcnextuse) for same person and same drug combo
-## If previous script is for a different drug combo or no previous script, define as start date (dcstart = 1)
-## If next script is for a different drug combo or no next script, define as stop date (dcstop = 1)
-## For this, split between class analysis and substance analysis
-all_scripts_class <- all_scripts %>%
-		group_by(serialno) %>%
-		arrange(date) %>%
-		filter(numstart_class > 0 | numstop_class > 0) %>%
-		mutate(
-				dcnextuse_class = difftime(lead(date), date, units = "days"),
-				dcprevuse_class = difftime(date, lag(date), units = "days")
-		) %>%
-		ungroup()
-
-
-all_scripts_substance <- all_scripts %>%
-		group_by(serialno) %>%
-		arrange(date) %>%
-		filter(numstart_substance > 0 | numstop_substance > 0) %>%
-		mutate(
-				dcnextuse_substance = difftime(lead(date), date, units = "days"),
-				dcprevuse_substance = difftime(date, lag(date), units = "days")
-		) %>%
-		ungroup()
-
-
-
-
-all_scripts_class <- all_scripts_class %>%
-		group_by(serialno) %>%
-		arrange(date) %>%
-		mutate(
-				dcstart_class = ifelse(numstart_class > 0, 1, 0),
-				dcstop_class = ifelse(numstop_class > 0, 1, 0)
-		) %>%
-		ungroup()
-
-all_scripts_substance <- all_scripts_substance %>%
-		group_by(serialno) %>%
-		arrange(date) %>%
-		mutate(
-				dcstart_substance = ifelse(numstart_substance > 0, 1, 0),
-				dcstop_substance = ifelse(numstop_substance > 0, 1, 0)
-		) %>%
-		ungroup()
-
-## Add 'gaps': defined as break of >6 months (183 days) in prescribing of combination
-### Update start and stop dates based on these
-#all_scripts_class <- all_scripts_class %>%
-#		group_by(serialno) %>%
-#		arrange(date) %>%
-#		mutate(
-#			stopgap_class = ifelse(dcnextuse_class>183 & drug_class_combo==lead(drug_class_combo), 1, NA),
-#			startgap_class = ifelse(dcprevuse_class>183 | is.na(dcprevuse_class), 1, NA),
-#			dcstop_class = ifelse(!is.na(stopgap_class) & stopgap_class==1 & dcstop_class==0, 1, dcstop_class),
-#			dcstart_class = ifelse(!is.na(startgap_class) & startgap_class==1 & dcstart_class==0, 1, dcstart_class)
-#		) %>%
-#		ungroup()
-#
-#
-#all_scripts_substance <- all_scripts_substance %>%
-#		group_by(serialno) %>%
-#		arrange(date) %>%
-#		mutate(
-#			stopgap_substance = ifelse(dcnextuse_substance>183 & drug_substance_combo==lead(drug_substance_combo), 1, NA),
-#			startgap_substance = ifelse(dcprevuse_substance>183 | is.na(dcprevuse_substance), 1, NA),
-#			dcstop_substance = ifelse(!is.na(stopgap_substance) & stopgap_substance==1 & dcstop_substance==0, 1, dcstop_substance),
-#			dcstart_substance = ifelse(!is.na(startgap_substance) & startgap_substance==1 & dcstart_substance==0, 1, dcstart_substance)
-#		) %>%
-#		ungroup()
-
-# Join all_scripts_class to all_scripts_substance
-## Remove drug_substance_combo from all_scripts_class
-all_scripts <- all_scripts_substance %>%
-		select(-contains("class")) %>%
-		left_join(all_scripts_class %>% select(-c(contains("substance"))))
-
-# Add in time to last prescription date for each patient (any drug class)
+# Define whether date is start or stop for each drug combination (as CPRD 01_mm_drug_sorting_and_combos)
+## A combination starts when the combination differs from the previous row (or there is no previous row)
+## and stops when it differs from the next row (or there is no next row)
+## drug_class_combo / drug_substance_combo is "" on marker rows after everything has stopped (a break): these
+## end the previous combination and are then removed
+## The 183-day gap rule CPRD applies here is not needed: eras within 183 days were already merged into one drug period,
+## and breaks between periods show up as "" rows
 all_scripts <- all_scripts %>%
 		group_by(serialno) %>%
+		arrange(date) %>%
 		mutate(
-				timetolastpx = difftime(max(date, na.rm = TRUE), date, units = "days")
+				dcstart_class = as.numeric(drug_class_combo != "" & (is.na(lag(drug_class_combo)) | drug_class_combo != lag(drug_class_combo))),
+				dcstop_class = as.numeric(drug_class_combo != "" & (is.na(lead(drug_class_combo)) | drug_class_combo != lead(drug_class_combo))),
+				dcstart_substance = as.numeric(drug_substance_combo != "" & (is.na(lag(drug_substance_combo)) | drug_substance_combo != lag(drug_substance_combo))),
+				dcstop_substance = as.numeric(drug_substance_combo != "" & (is.na(lead(drug_substance_combo)) | drug_substance_combo != lead(drug_substance_combo))),
+				## Combination stop date = day before the next (different) combination row
+				## (CPRD: last prescription before the change; SDRN only has rows on era start/stop dates)
+				dcstopdate_class_row = if_else(dcstop_class == 1, coalesce(lead(date) - 1, date), as.Date(NA)),
+				dcstopdate_substance_row = if_else(dcstop_substance == 1, coalesce(lead(date) - 1, date), as.Date(NA))
 		) %>%
 		ungroup() %>%
-		mutate(
-				dcstart_class = ifelse(is.na(dcstart_class), 0, dcstart_class),
-				dcstop_class = ifelse(is.na(dcstop_class), 0, dcstop_class)
-		)
+		filter(drug_class_combo != "")
+
+# Add in time to last prescription date for each patient (any drug class)
+## SDRN: last_px_date is the end of the last era (CPRD: date of last prescription)
+all_scripts <- all_scripts %>%
+		left_join(last_px, by = "serialno") %>%
+		mutate(timetolastpx = difftime(last_px_date, date, units = "days")) %>%
+		select(-last_px_date) %>%
+		arrange(serialno, date)
+
+rm(last_px)
+
 
 #all_scripts %>% nrow()
 #2301488
@@ -790,8 +783,8 @@ combo_class_start_stop <- all_scripts %>%
 		mutate(
 				dcstartdate = ifelse(dcstart_class==1, date, as.Date(NA)),
 				dcstartdate = as.Date(dcstartdate, origin = "1970-01-01"),
-				dcstopdate = ifelse(dcstart_class==1 & dcstop_class==1, date,
-						ifelse(dcstart_class==1 & dcstop_class==0, lead(date), as.Date(NA))),
+				dcstopdate = ifelse(dcstart_class==1 & dcstop_class==1, dcstopdate_class_row,
+						ifelse(dcstart_class==1 & dcstop_class==0, lead(dcstopdate_class_row), as.Date(NA))),
 				dcstopdate = as.Date(dcstopdate, origin = "1970-01-01")
 		) %>%
 		ungroup()
@@ -932,8 +925,8 @@ combo_substance_start_stop <- all_scripts %>%
 		mutate(
 				dcstartdate = ifelse(dcstart_substance==1, date, as.Date(NA)),
 				dcstartdate = as.Date(dcstartdate, origin = "1970-01-01"),
-				dcstopdate = ifelse(dcstart_substance==1 & dcstop_substance==1, date,
-						ifelse(dcstart_substance==1 & dcstop_substance==0, lead(date), as.Date(NA))),
+				dcstopdate = ifelse(dcstart_substance==1 & dcstop_substance==1, dcstopdate_substance_row,
+						ifelse(dcstart_substance==1 & dcstop_substance==0, lead(dcstopdate_substance_row), as.Date(NA))),
 				dcstopdate = as.Date(dcstopdate, origin = "1970-01-01")
 		) %>%
 		ungroup()
@@ -1088,10 +1081,11 @@ combo_start_stop <- combo_substance_start_stop %>%
 combo_start_stop <- combo_start_stop %>%
 		group_by(serialno, drug_class_changes) %>%
 		mutate(
-				datechange_class = as.Date(datechange_class, origin = "1970-01-01"),
-				dateaddrem_class = as.Date(dateaddrem_class, origin = "1970-01-01"),
-				dateprevcombo_class = as.Date(dateprevcombo_class, origin = "1970-01-01"),
-				
+				## copy class-level dates down to rows where only the drug substance combination changed (as CPRD)
+				datechange_class = suppressWarnings(max(as.Date(datechange_class, origin = "1970-01-01"), na.rm = TRUE)),
+				dateaddrem_class = suppressWarnings(max(as.Date(dateaddrem_class, origin = "1970-01-01"), na.rm = TRUE)),
+				dateprevcombo_class = suppressWarnings(max(as.Date(dateprevcombo_class, origin = "1970-01-01"), na.rm = TRUE)),
+
 				DPP4 = max(DPP4, na.rm = TRUE),
 				GLP1 = max(GLP1, na.rm = TRUE),
 				INS = max(INS, na.rm = TRUE),
@@ -1108,6 +1102,8 @@ combo_start_stop <- combo_start_stop %>%
 				timetoaddrem_class = difftime(dateaddrem_class, dcstartdate, units = "days"),
 				timeprevcombo_class = difftime(dcstartdate, dateprevcombo_class, units = "days")
 		) %>%
+		## max() of all-missing gives -Inf: set back to missing
+		mutate(across(c(timetochange_class, timetoaddrem_class, timeprevcombo_class), ~ replace(.x, !is.finite(as.numeric(.x)), NA))) %>%
 		
 		select(serialno, dcstartdate, dcstopdate_class, drug_class_combo, timetochange_class, timetoaddrem_class, timeprevcombo_class, multi_drug_start_class, all_of(drugclasses), dcstopdate_substance, drug_substance_combo, timetochange_substance, timetoaddrem_substance, timeprevcombo_substance, multi_drug_start_substance, all_of(drugsubstances)) %>%
 		mutate(ncurrtx = DPP4+GLP1+INS+MFN+SGLT2+SU+TZD-1)

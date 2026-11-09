@@ -49,17 +49,33 @@ con <- dbConn("NDS_2024")
 ## If you add comorbidity to the end of this list, code should run fine to incorporate new comorbidity
 ## fh_diabetes = codded based on specific table s_cd_diabetes
 ## Missing = fh_premature_cvd, frailty_simple, hosp_cause_majoramputation, hosp_cause_minoramputation, osteoporosis, photocoagulation, revasc, solidorgantransplant
+## Comorbidities without an ICD10/OPCS4 codelist in the Codelists folder are skipped (no variable is made)
+## Same list and names as CPRD 04_mm_comorbidities (CPRD renamed benignprostatehyperplasia -> bph and photocoagulation -> ukpds_photocoagulation)
 
 comorbids <- c(
-		"af", "angina", "anxiety_disorders", "asthma", "benignprostatehyperplasia", "bronchiectasis",
+		"af", "angina", "anxiety_disorders", "asthma", "bph", "bronchiectasis",
 		"ckd5_code", "cld", "copd", "cysticfibrosis", "dementia", "diabeticnephropathy", "dka",
-		"falls", "frailty_simple", "haem_cancer", 
+		"falls", "frailty_simple", "haem_cancer",
 		"heartfailure", "hypertension", "ihd",  "incident_mi",
-		"incident_stroke", "lowerlimbfracture", "micturition_control", "myocardialinfarction", "neuropathy",
-		"osteoporosis", "otherneuroconditions", "pad", "photocoagulation", "pulmonaryfibrosis", "pulmonaryhypertension", "retinopathy",
+		"incident_stroke", "lowerlimbfracture", "micturition_control", "myocardialinfarction",
+		#"neuropathy", # codes removed from CPRD code list 05/02/2026
+		"osteoporosis", "otherneuroconditions", "pad", "ukpds_photocoagulation", "pulmonaryfibrosis", "pulmonaryhypertension",
+		#"retinopathy", # codes removed from CPRD code list 05/02/2026
 		"revasc", "rheumatoidarthritis", "solid_cancer", "solidorgantransplant", "stroke", "tia", "unstableangina", "urinary_frequency",
-		"vitreoushemorrhage", "volume_depletion"
+		#"vitreoushemorrhage", # codes removed from CPRD code list 05/02/2026
+		"volume_depletion", "genital_infection", "genital_infection_nonspec", "hypoglycaemia"
 )
+
+## Codelist file for a comorbidity; uses the old file name if the Codelists folder still has the codelist under its old name
+old_codelist_names <- c(bph = "benignprostatehyperplasia", ukpds_photocoagulation = "photocoagulation")
+
+codelist_file <- function(type, comorbidity) {
+	path <- paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Codelists/", toupper(type), "/exeter_", type, "_", comorbidity, ".txt")
+	if (!file.exists(path) & comorbidity %in% names(old_codelist_names)) {
+		path <- paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Codelists/", toupper(type), "/exeter_", type, "_", old_codelist_names[[comorbidity]], ".txt")
+	}
+	return(path)
+}
 
 
 ###############################################################################
@@ -69,11 +85,11 @@ comorbids <- c(
 # Should it count death records too?
 
 for (i in comorbids) {
-	
+
 	print(i)
-	codelist_name_icd10 <- paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Codelists/ICD10/exeter_icd10_", i, ".txt")
-	codelist_name_opcs4 <- paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Codelists/OPCS4/exeter_opcs4_", i, ".txt")
-	
+	codelist_name_icd10 <- codelist_file("icd10", i)
+	codelist_name_opcs4 <- codelist_file("opcs4", i)
+
 	if (file.exists(codelist_name_icd10)) {
 		
 		codelist <- clean_codes(read.delim(codelist_name_icd10) %>%

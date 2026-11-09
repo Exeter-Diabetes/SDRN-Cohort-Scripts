@@ -56,8 +56,11 @@ for (i in 1:length(biomarkers)) {
 		data <- dbGetQueryMap(con, mysqlquery) %>%
 				select(serialno, date, "testvalue" = num.value) %>%
 				drop_na(testvalue) %>%
-				filter(testvalue >= min_limits[i] & testvalue <= max_limits[i])
-		
+				filter(testvalue >= min_limits[i] & testvalue <= max_limits[i]) %>%
+				## as CPRD: average multiple readings on the same day
+				group_by(serialno, date) %>%
+				summarise(testvalue = mean(testvalue, na.rm = TRUE), .groups = "drop")
+
 		assign(clean_tablename, data)
 		
 		do.call(save, list(clean_tablename, file = file_name))
@@ -439,39 +442,34 @@ next_egfr <- baseline_biomarkers %>%
 		mutate(next_egfr_date = as.Date(next_egfr_date, origin = "1970-01-01"))
 
 
-### Add in 40% declince in eGFR outcome
-### Join drug start dates with all longitudinal eGFR measurements, and only keep later eGFR measurements which are <=60% of the baseline value
+### Add in 40% and 50% decline in eGFR outcomes (as CPRD 03_mm_response_biomarkers):
+### egfr_{40/50}_decline_date = earliest later eGFR <=60%/<=50% of baseline (single measurement)
+### egfr_{40/50}_decline_date_confirmed = earliest such date confirmed by another eGFR <=60%/<=50% of baseline at least 28 days later
 ### Checked and those with null eGFR do get dropped
-egfr40 <- baseline_biomarkers %>%
-		select(serialno, drug_substance, dstartdate, preegfr, preegfrdate) %>%
-		left_join(egfr_long, by = c("serialno")) %>%
-		filter(difftime(date, preegfrdate, units = "days")>0) %>%
-		filter(testvalue<=0.6*preegfr) %>%
-		group_by(serialno, drug_substance, dstartdate, preegfr) %>%
-		summarise(egfr_40_decline_date = min(date, na.rm = TRUE)) %>%
-		ungroup() %>%
-		mutate(egfr_40_decline_date = as.Date(egfr_40_decline_date, origin = "1970-01-01")) %>%
-		left_join(egfr_long, by = c("serialno")) %>%
-		filter(difftime(date, egfr_40_decline_date, units = "days")>=28) %>%
-		filter(testvalue<=0.6*preegfr) %>%
-		distinct(serialno, drug_substance, dstartdate, egfr_40_decline_date)
+### CPRD joins the decline dates with all eGFRs a second time to find the confirming value. That join is too big for memory here
+### and not needed: a confirming eGFR (<= threshold, >=28 days after a decline date) is itself one of the decline dates,
+### so a decline date is confirmed if the LAST decline date is >=28 days after it (same result as CPRD)
+egfr_decline <- function(fraction, suffix) {
+	baseline_biomarkers %>%
+			select(serialno, drug_substance, dstartdate, preegfr, preegfrdate) %>%
+			inner_join(egfr_long, by = c("serialno")) %>%
+			filter(as.numeric(difftime(date, preegfrdate, units = "days"))>0 & testvalue<=fraction*preegfr) %>%
+			group_by(serialno, drug_substance, dstartdate) %>%
+			summarise(
+					decline_date = min(date, na.rm = TRUE),
+					decline_date_confirmed = suppressWarnings(min(date[as.numeric(difftime(max(date), date, units = "days"))>=28])),
+					.groups = "drop"
+			) %>%
+			## min() of no dates gives Inf: set to missing
+			mutate(decline_date_confirmed = if_else(is.finite(decline_date_confirmed), decline_date_confirmed, as.Date(NA))) %>%
+			rename(
+					!!paste0("egfr_", suffix, "_decline_date") := decline_date,
+					!!paste0("egfr_", suffix, "_decline_date_confirmed") := decline_date_confirmed
+			)
+}
 
-### Add in 50% decline in eGFR outcome
-### Join drug start dates with all longitudinal eGFR measurements, and only keep later eGFR measurements which are <=50% of the baseline values
-### Checked and those with null eGFR do get dropped
-egfr50 <- baseline_biomarkers %>%
-		select(serialno, drug_substance, dstartdate, preegfr, preegfrdate) %>%
-		left_join(egfr_long, by = c("serialno")) %>%
-		filter(difftime(date, preegfrdate, units = "days")>0) %>%
-		filter(testvalue<=0.5*preegfr) %>%
-		group_by(serialno, drug_substance, dstartdate, preegfr) %>%
-		summarise(egfr_50_decline_date = min(date, na.rm = TRUE)) %>%
-		ungroup() %>%
-		mutate(egfr_50_decline_date = as.Date(egfr_50_decline_date, origin = "1970-01-01")) %>%
-		left_join(egfr_long, by = c("serialno")) %>%
-		filter(difftime(date, egfr_50_decline_date, units = "days")>=28) %>%
-		filter(testvalue<=0.5*preegfr) %>%
-		distinct(serialno, drug_substance, dstartdate, egfr_50_decline_date)
+egfr40 <- egfr_decline(0.6, "40")
+egfr50 <- egfr_decline(0.5, "50")
 
 ## ACR
 
@@ -493,8 +491,8 @@ prev_acr <- baseline_biomarkers %>%
 				preacr_previous = ifelse(row_number()==1, NA, lag(testvalue)),
 				preacr_previous_date = ifelse(row_number()==1, NA, lag(date)),
 				preacr_previous_date = as.Date(preacr_previous_date, origin = "1970-01-01"),
-				preacr_next = ifelse(row_number()==1, NA, lead(testvalue)),
-				preacr_next_date = ifelse(row_number()==1, NA, lead(date)),
+				preacr_next = ifelse(row_number()==n(), NA, lead(testvalue)),
+				preacr_next_date = ifelse(row_number()==n(), NA, lead(date)),
 				preacr_next_date = as.Date(preacr_next_date, origin = "1970-01-01")
 		) %>%
 		ungroup()

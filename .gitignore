@@ -3,3 +3,8 @@
 .RData
 .Ruserdata
 SDRN-Cohort-Scripts.Rproj
+
+# AI assistant notes (local only)
+CLAUDE.md
+CLAUDE_PLAN_SDRN_review.md
+SDRN_vs_CPRD_REVIEW.md

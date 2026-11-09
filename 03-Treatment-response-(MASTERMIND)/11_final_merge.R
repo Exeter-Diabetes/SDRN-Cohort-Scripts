@@ -83,6 +83,15 @@ all_diabetes_1stinstance <- all_diabetes_drug_periods %>%
 all_diabetes_1stinstance %>% distinct(serialno) %>% nrow()
 #401998 as above
 
+### Exclude drug periods starting after or on same day as death (as CPRD 13_mm_final_merge)
+### CPRD also excludes drug periods starting within 90 days of registration and sets drugline to missing if diagnosed
+### before registration: SDRN has no registration date (see server_checks.R C1 for the start of prescribing data)
+all_diabetes_1stinstance <- all_diabetes_1stinstance %>%
+		filter(is.na(death_date) | death_date > dstartdate)
+
+all_diabetes_1stinstance %>% nrow()
+all_diabetes_1stinstance %>% distinct(serialno) %>% nrow()
+
 
 
 ## Merge in biomarkers, comorbidities, eFI, non-diabetes meds, smoking status, alcohol
@@ -100,7 +109,7 @@ all_diabetes_1stinstance <- all_diabetes_1stinstance %>%
 		inner_join((alcohol %>% select(-c(drug_class, drug_instance))), by = c("serialno", "dstartdate", "drug_substance")) %>%
 		left_join(death_causes, by = "serialno") %>%
 		mutate(
-				dstartdate_age = as.numeric(difftime(dstartdate, dob, units = "days"))/365.25,,
+				dstartdate_age = as.numeric(difftime(dstartdate, dob, units = "days"))/365.25,
 				dstartdate_age_all = dstartdate_age,
 				dstartdate_dm_dur = as.numeric(difftime(dstartdate, dm_diag_date_all, units = "days"))/365.25,
 				dstartdate_dm_dur_all = dstartdate_dm_dur
