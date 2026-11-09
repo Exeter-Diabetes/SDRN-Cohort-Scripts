@@ -14,8 +14,10 @@ library(data.table)
 
 ###############################################################################
 
-## connection to database
-con <- dbConn("NDS_2024")
+## connection to database: only opened if a cleaned biomarker file is missing
+## (03_response_biomarkers.R saves the same cleaned tables as mm_clean_{biomarker}_medcodes.RData; if they exist they are used,
+## so this script can run without database access. Delete them to read the database again, e.g. after a data refresh)
+con <- NULL
 
 ###############################################################################
 
@@ -39,7 +41,26 @@ for (i in 1:length(biomarkers)) {
 	print(biomarkers[i])
 	
 	clean_tablename <- paste0("clean_", biomarkers[i], "_medcodes")
-	
+
+	file_name <- paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_", clean_tablename, ".RData")
+	if (file.exists(file_name)) {
+
+		load(file_name)
+
+		## older saved files were made before same-day averaging was added: average again (no change if already averaged)
+		data <- get(clean_tablename) %>%
+				group_by(serialno, date) %>%
+				summarise(testvalue = mean(testvalue, na.rm = TRUE), .groups = "drop")
+
+		assign(clean_tablename, data)
+		rm(data)
+		gc()
+
+		next
+	}
+
+	if (is.null(con)) con <- dbConn("NDS_2024")
+
 	mysqlquery <- paste0("
 					SELECT o_observation.* 
 					FROM o_observation, o_concept_observation 
@@ -60,6 +81,13 @@ for (i in 1:length(biomarkers)) {
 }
 
 
+if (file.exists("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_clean_hba1c_medcodes.RData")) {
+	## same cleaning as below (saved by 03_response_biomarkers.R)
+	load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_clean_hba1c_medcodes.RData")
+} else {
+
+if (is.null(con)) con <- dbConn("NDS_2024")
+
 clean_hba1c_medcodes <- dbGetQueryMap(con, "
 						SELECT o_observation.*
 						FROM o_observation, o_concept_observation
@@ -73,6 +101,8 @@ clean_hba1c_medcodes <- dbGetQueryMap(con, "
 		group_by(serialno, date) %>%
 		summarise(testvalue = mean(testvalue, na.rm = TRUE)) %>%
 		ungroup()
+
+}
 
 
 # Get diabetes cohort
@@ -101,7 +131,7 @@ clean_egfr_medcodes <- clean_creatinine_blood_medcodes %>%
 
 
 ## disconnect from database
-dbDisconnect(con)
+if (!is.null(con)) dbDisconnect(con)
 
 
 biomarkers <- c("egfr", biomarkers)

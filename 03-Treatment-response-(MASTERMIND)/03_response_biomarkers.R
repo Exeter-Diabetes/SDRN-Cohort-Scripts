@@ -17,7 +17,8 @@ library(tidyverse)
 ###############################################################################
 
 ## connection to database
-con <- dbConn("NDS_2024")
+## opened only if a cleaned biomarker file (mm_clean_*_medcodes.RData) is missing, so the script can run without database access
+con <- NULL
 
 ###############################################################################
 
@@ -53,6 +54,8 @@ for (i in 1:length(biomarkers)) {
 						o_observation.concept_id = o_concept_observation.uid AND 
 						o_concept_observation.path = '", concept_observation[i], "'")
 		
+		if (is.null(con)) con <- dbConn("NDS_2024")
+		
 		data <- dbGetQueryMap(con, mysqlquery) %>%
 				select(serialno, date, "testvalue" = num.value) %>%
 				drop_na(testvalue) %>%
@@ -73,6 +76,7 @@ for (i in 1:length(biomarkers)) {
 }
 
 if (!file.exists("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_clean_hba1c_medcodes.RData")) {
+	if (is.null(con)) con <- dbConn("NDS_2024")
 	clean_hba1c_medcodes <- dbGetQueryMap(con, "
 							SELECT o_observation.*
 							FROM o_observation, o_concept_observation
@@ -126,7 +130,7 @@ if (!file.exists("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/
 
 
 ## disconnect from database
-dbDisconnect(con)
+if (!is.null(con)) dbDisconnect(con)
 
 
 biomarkers <- c("egfr", biomarkers)
@@ -160,7 +164,10 @@ for (i in c(biomarkers, "hba1c")) {
 		
 		load(paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_", clean_tablename, ".RData"))
 		
+		## older saved clean tables were made before same-day averaging was added: average again (no change if already averaged)
 		data <- get(clean_tablename) %>%
+				group_by(serialno, date) %>%
+				summarise(testvalue = mean(testvalue, na.rm = TRUE), .groups = "drop") %>%
 				inner_join(drug_start_dates, by = c("serialno")) %>%
 				mutate(drugdatediff = difftime(date, dstartdate, units = "days"))
 		

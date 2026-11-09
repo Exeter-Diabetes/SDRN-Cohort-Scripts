@@ -16,6 +16,33 @@ drug_class_table <- readRDS("/home/pcardoso/workspace/SDRN-Cohort-scripts/Codeli
 
 ###############################################################################
 
+## use_saved_data = TRUE: no database access needed. The drug eras are rebuilt from the saved
+## mm_all_scripts_long.RData (substance periods). Tested on made-up data: gives exactly the same
+## all_scripts_long as starting from o_drug_era (substance periods are already merged eras, and class
+## periods built from them are the same as class periods built from the eras)
+## use_saved_data = FALSE: read the drug eras from the database
+use_saved_data <- TRUE
+saved_scripts_file <- "/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_all_scripts_long.RData"
+
+if (use_saved_data) {
+
+	load(saved_scripts_file)
+
+	## one row per substance period (start date to stop date), same columns as oha_list below
+	oha_list <- all_scripts_long %>%
+			filter(dstart_substance == 1 | dstop_substance == 1) %>%
+			group_by(serialno, drug_class, drug_substance) %>%
+			arrange(date, desc(dstart_substance), .by_group = TRUE) %>%
+			mutate(period = cumsum(dstart_substance)) %>%
+			group_by(serialno, drug_class, drug_substance, period) %>%
+			summarise(startdate = min(date), enddate = max(date), .groups = "drop") %>%
+			select(serialno, startdate, enddate, drug_class, drug_substance)
+
+	rm(all_scripts_long)
+	gc()
+
+} else {
+
 ## connection to database
 con <- dbConn("NDS_2024")
 
@@ -213,6 +240,11 @@ oha_list <- oha_list %>%
 		group_by(serialno, startdate, enddate, drug_class, drug_substance) %>%
 		filter(row_number() == 1) %>%
 		ungroup()
+
+rm(mfn_initiations, sglt2_initiations, tzd_initiations, dpp4_initiations, su_initiations, glp1_initiations)
+
+}
+## end of use_saved_data
 
 ##################################################################
 # Define whether date is start or stop for each drug class/substance
