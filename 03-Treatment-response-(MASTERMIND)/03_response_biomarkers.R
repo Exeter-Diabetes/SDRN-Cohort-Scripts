@@ -555,3 +555,151 @@ response_biomarkers <- response_biomarkers %>%
 save(response_biomarkers, file = "/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_response_biomarkers.RData")
 
 
+###############################################################################
+
+# GLP1 group-censored response variables (_cens): GLP1 only, NA for other drug classes
+## As CPRD 03_mm_response_biomarkers.R (GLP1 _cens section). No database access needed
+## Each group of similar GLP1s is treated as if it were its own drug class (groups defined in glp1_cens_periods, 02_baseline_biomarkers.R)
+## Only for the first substance period of the first run of each GLP1 group (glp1_group_start_cens==1); NA for other GLP1 substance periods
+## 6/12 month windows as above (at least 3/9 months, up to 9/15 months, before another drug class added/removed, before timetochange_class+91), and also:
+### before a different GLP1 group is started (timetonextgroup_cens)
+### no later than 91 days after the end of the GLP1 group (timetogroupstop_cens+91; SDRN: era end, so later than CPRD's last script)
+## HbA1c: baseline is prehba1c_cens (excludes values before timeprevcombo_cens), and response missing where timeprevcombo_cens<=61 days
+## Other biomarkers: baseline is pre{biomarker}, as above
+## SDRN: each full_{biomarker}_drug_merge is loaded once and cut down to GLP1 group starts straight away (memory); the 6m and 12m
+## values are found from that small table and are not saved separately (no extra files to delete after a change)
+
+## free memory: keep only what this section needs
+rm(list = setdiff(ls(), c("biomarkers")))
+gc()
+
+load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_glp1_cens_periods.RData")
+load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_baseline_biomarkers_cens.RData")
+
+glp1_group_starts <- glp1_cens_periods %>%
+		filter(glp1_group_start_cens==1) %>%
+		select(serialno, dstartdate, drug_substance, timetonextgroup_cens, timetogroupstop_cens)
+
+## closest value to target_days within the window: at least min_days after drug start, and before the earliest of
+## max_days, timetoaddrem_class, timetochange_class+91, timetonextgroup_cens and timetogroupstop_cens+91
+post_biomarker_cens <- function(data, min_days, max_days, target_days) {
+	data %>%
+			mutate(
+					maxtime = pmin(ifelse(is.na(timetoaddrem_class), max_days, timetoaddrem_class),
+							ifelse(is.na(timetochange_class), max_days, timetochange_class+91),
+							ifelse(is.na(timetonextgroup_cens), max_days, timetonextgroup_cens),
+							ifelse(is.na(timetogroupstop_cens), max_days, timetogroupstop_cens+91), max_days, na.rm = TRUE)
+			) %>%
+			filter(maxtime>=min_days & drugdatediff>=min_days & drugdatediff<=maxtime) %>%
+			group_by(serialno, dstartdate, drug_substance) %>%
+			mutate(min_timediff = min(abs(target_days-drugdatediff), na.rm = TRUE)) %>%
+			filter(abs(target_days-drugdatediff)==min_timediff) %>%
+			mutate(post_biomarker = min(testvalue, na.rm = TRUE)) %>%
+			filter(post_biomarker==testvalue) %>%
+			arrange(drugdatediff) %>%
+			filter(row_number()==1) %>%
+			ungroup() %>%
+			select(serialno, dstartdate, drug_substance, post_biomarker, post_biomarker_date = date, post_biomarker_drugdiff = drugdatediff)
+}
+
+
+# Combine with baseline values and find response
+## Starts from all first instance GLP1 substance periods so glp1_group_cens, glp1_group_run_cens and glp1_group_start_cens are there for all of them
+## pre{biomarker} (other than HbA1c) are only used to calculate the responses and are removed at the end, as they are already in response_biomarkers
+
+pre_biomarker_variables <- setdiff(paste0("pre", biomarkers), "prehba1c")
+
+load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_baseline_biomarkers.RData")
+
+response_biomarkers_cens <- glp1_cens_periods %>%
+		select(serialno, dstartdate, drug_substance, glp1_group_cens, glp1_group_run_cens, glp1_group_start_cens, timeprevcombo_cens) %>%
+		left_join((baseline_biomarkers %>% select(serialno, dstartdate, drug_substance, all_of(pre_biomarker_variables))), by = c("serialno", "dstartdate", "drug_substance")) %>%
+		left_join(baseline_biomarkers_cens, by = c("serialno", "dstartdate", "drug_substance"))
+
+rm(baseline_biomarkers, baseline_biomarkers_cens, glp1_cens_periods)
+gc()
+
+
+for (i in biomarkers) {
+
+	print(i)
+
+	drug_merge_tablename <- paste0("full_", i, "_drug_merge")
+
+	load(paste0("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_", drug_merge_tablename, ".RData"))
+
+	glp1_merge <- get(drug_merge_tablename) %>%
+			filter(drug_class=="GLP1" & drug_instance==1) %>%
+			select(serialno, date, testvalue, dstartdate, drug_substance, drugdatediff, timetoaddrem_class, timetochange_class) %>%
+			inner_join(glp1_group_starts, by = c("serialno", "dstartdate", "drug_substance")) %>%
+			mutate(across(c(drugdatediff, timetoaddrem_class, timetochange_class), as.numeric))
+
+	rm(list = drug_merge_tablename)
+	gc()
+
+	post6m <- post_biomarker_cens(glp1_merge, min_days = 91, max_days = 274, target_days = 183) %>%
+			rename(post_biomarker_6m = post_biomarker, post_biomarker_6mdate = post_biomarker_date, post_biomarker_6mdrugdiff = post_biomarker_drugdiff)
+	post12m <- post_biomarker_cens(glp1_merge, min_days = 274, max_days = 457, target_days = 365) %>%
+			rename(post_biomarker_12m = post_biomarker, post_biomarker_12mdate = post_biomarker_date, post_biomarker_12mdrugdiff = post_biomarker_drugdiff)
+
+	rm(glp1_merge)
+
+	pre_biomarker_variable <- ifelse(i=="hba1c", "prehba1c_cens", paste0("pre", i))
+
+	post_6m_biomarker_variable <- paste0("post", i, "6m_cens")
+	post_6m_biomarker_date_variable <- paste0("post", i, "6mdate_cens")
+	post_6m_biomarker_drugdiff_variable <- paste0("post", i, "6mdrugdiff_cens")
+	biomarker_6m_response_variable <- paste0(i, "resp6m_cens")
+	post_12m_biomarker_variable <- paste0("post", i, "12m_cens")
+	post_12m_biomarker_date_variable <- paste0("post", i, "12mdate_cens")
+	post_12m_biomarker_drugdiff_variable <- paste0("post", i, "12mdrugdiff_cens")
+	biomarker_12m_response_variable <- paste0(i, "resp12m_cens")
+
+	response_biomarkers_cens <- response_biomarkers_cens %>%
+			left_join(post6m, by = c("serialno", "dstartdate", "drug_substance")) %>%
+			left_join(post12m, by = c("serialno", "dstartdate", "drug_substance"))
+
+	rm(post6m, post12m)
+
+	if (i=="hba1c") {
+
+		response_biomarkers_cens <- response_biomarkers_cens %>%
+				mutate(
+						post_biomarker_6m = ifelse(!is.na(timeprevcombo_cens) & timeprevcombo_cens<=61, NA, post_biomarker_6m),
+						post_biomarker_6mdate = if_else(!is.na(timeprevcombo_cens) & timeprevcombo_cens<=61, as.Date(NA), post_biomarker_6mdate),
+						post_biomarker_6mdrugdiff = ifelse(!is.na(timeprevcombo_cens) & timeprevcombo_cens<=61, NA, post_biomarker_6mdrugdiff),
+						post_biomarker_12m = ifelse(!is.na(timeprevcombo_cens) & timeprevcombo_cens<=61, NA, post_biomarker_12m),
+						post_biomarker_12mdate = if_else(!is.na(timeprevcombo_cens) & timeprevcombo_cens<=61, as.Date(NA), post_biomarker_12mdate),
+						post_biomarker_12mdrugdiff = ifelse(!is.na(timeprevcombo_cens) & timeprevcombo_cens<=61, NA, post_biomarker_12mdrugdiff)
+				)
+
+	}
+
+	response_biomarkers_cens <- response_biomarkers_cens %>%
+
+			mutate(
+					{{biomarker_6m_response_variable}}:=ifelse(!is.na(!!as.name(pre_biomarker_variable)) & !is.na(post_biomarker_6m), post_biomarker_6m-!!as.name(pre_biomarker_variable), NA),
+					{{biomarker_12m_response_variable}}:=ifelse(!is.na(!!as.name(pre_biomarker_variable)) & !is.na(post_biomarker_12m), post_biomarker_12m-!!as.name(pre_biomarker_variable), NA)
+			) %>%
+
+			rename(
+					{{post_6m_biomarker_variable}}:=post_biomarker_6m,
+					{{post_6m_biomarker_date_variable}}:=post_biomarker_6mdate,
+					{{post_6m_biomarker_drugdiff_variable}}:=post_biomarker_6mdrugdiff,
+					{{post_12m_biomarker_variable}}:=post_biomarker_12m,
+					{{post_12m_biomarker_date_variable}}:=post_biomarker_12mdate,
+					{{post_12m_biomarker_drugdiff_variable}}:=post_biomarker_12mdrugdiff
+			)
+
+}
+
+
+response_biomarkers_cens <- response_biomarkers_cens %>%
+		select(-c(timeprevcombo_cens, all_of(pre_biomarker_variables)))
+
+cat("G4: GLP1 group starts with hba1cresp6m_cens =", sum(!is.na(response_biomarkers_cens$hba1cresp6m_cens)),
+		"| hba1cresp12m_cens =", sum(!is.na(response_biomarkers_cens$hba1cresp12m_cens)), "\n")
+
+save(response_biomarkers_cens, file = "/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_response_biomarkers_cens.RData")
+
+

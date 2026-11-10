@@ -32,6 +32,7 @@ load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_combo_sta
 ## Biomarkers inc. CKD
 #load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_baseline_biomarkers.RData")
 load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_response_biomarkers.RData") # includes baseline biomarker values for first instance drug periods so no need to use baseline_biomarkers table
+load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_response_biomarkers_cens.RData") # GLP1 group-censored (_cens) response variables: GLP1 first instance periods only
 load("/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_ckd_stages.RData")
 
 ## Comorbidities, non-diabetes meds, smoking and alcohol (04, 06, 07, 08)
@@ -119,6 +120,7 @@ all_diabetes_1stinstance %>% distinct(serialno) %>% nrow()
 
 all_diabetes_1stinstance <- all_diabetes_1stinstance %>%
 		inner_join((response_biomarkers %>% select(-c(drug_class, drug_instance, timeprevcombo_class))), by = c("serialno", "dstartdate", "drug_substance")) %>%
+		left_join(response_biomarkers_cens, by = c("serialno", "dstartdate", "drug_substance")) %>%
 		inner_join((ckd_stages %>% select(-c(drug_class, drug_instance))), by = c("serialno", "dstartdate", "drug_substance"))
 
 if (use_old_final_covariates) {
