@@ -198,7 +198,13 @@ glycaemic_failure <- glycaemic_failure_thresholds_reached %>%
 		mutate(
 				hba1c_fail_baseline_reached = ifelse(is.infinite(hba1c_fail_baseline_reached), NA, hba1c_fail_baseline_reached),
 				hba1c_fail_baseline_0.5_reached = ifelse(is.infinite(hba1c_fail_baseline_0.5_reached), NA, hba1c_fail_baseline_0.5_reached)
-		)
+		) %>%
+		## min() of no dates gives Inf (not NA; is.na() is FALSE), e.g. baseline thresholds when there is no baseline HbA1c: set to missing (CPRD SQL gives NULL)
+		mutate(across(matches("^hba1c_fail_.*_date$"), ~ if_else(is.infinite(.x), as.Date(NA), .x)))
+
+cat("H1: drug class periods =", nrow(glycaemic_failure), "| fail date missing (7.5 / baseline):",
+		sum(is.na(glycaemic_failure$hba1c_fail_7.5_date)), "/", sum(is.na(glycaemic_failure$hba1c_fail_baseline_date)),
+		"| baseline HbA1c missing:", sum(is.na(glycaemic_failure$prehba1c)), "\n")
 
 save(glycaemic_failure, file = "/home/pcardoso/workspace/SDRN-Cohort-scripts/Interim_Datasets/mm_glycaemic_failure.RData")
 
