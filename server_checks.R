@@ -107,6 +107,27 @@ p("B6 add/swap combos where next change is a REMOVE within <=1 / 2-30 / 31-90 / 
 		n5(sum(x$nextdrugchange == "remove" & x$ttar > 90 & x$ttar <= 183, na.rm = TRUE)),
 		"of", n5(nrow(x)))
 
+## B7: for add combos followed by a REMOVE within 90 days, which drug was removed?
+## old = a drug taken before the add (looks like a switch with overlapping supply); new = the drug just added (stopped early)
+cls <- function(x) lapply(strsplit(x, "_"), function(y) y[y != ""])
+y <- combo_class_start_stop %>%
+		group_by(serialno) %>% arrange(dcstartdate, .by_group = TRUE) %>%
+		mutate(prev_combo = lag(drug_class_combo), next_combo = lead(drug_class_combo)) %>%
+		ungroup() %>%
+		filter(drugchange == "add", nextdrugchange == "remove", as.numeric(timetoaddrem_class) <= 90, !is.na(prev_combo), !is.na(next_combo))
+now <- cls(y$drug_class_combo); prv <- cls(y$prev_combo); nxt <- cls(y$next_combo)
+added <- mapply(setdiff, now, prv, SIMPLIFY = FALSE)
+removed <- mapply(setdiff, now, nxt, SIMPLIFY = FALSE)
+old_removed <- mapply(function(r, a) length(r) > 0 & !any(r %in% a), removed, added)
+p("B7 add then remove <=90 days: old drug removed / new drug removed / of",
+		n5(sum(old_removed)), "/", n5(sum(!old_removed)), "/", n5(nrow(y)))
+ttar <- as.numeric(y$timetoaddrem_class)
+p("B7b old drug removed within <=30 / 31-60 / 61-90 days",
+		n5(sum(old_removed & ttar <= 30)), "/", n5(sum(old_removed & ttar > 30 & ttar <= 60)), "/", n5(sum(old_removed & ttar > 60)))
+p("B7c old drug removed <=90 days, by class added (DPP4/GLP1/SGLT2/SU/TZD)",
+		paste(sapply(c("DPP4", "GLP1", "SGLT2", "SU", "TZD"), function(cl) n5(sum(old_removed & sapply(added, function(a) cl %in% a)))), collapse = " / "))
+rm(y, now, prv, nxt, added, removed, old_removed, ttar)
+
 rm(list = setdiff(ls(), c("dir", "p", "q5", "pct", "n5")))
 gc()
 
@@ -120,7 +141,10 @@ fd <- "/home/pcardoso/workspace/SDRN-Cohort-scripts/Final_Datasets/"
 load(tail(sort(list.files(fd, pattern = "^mm_[0-9]{8}_t2d_all_drug_periods\\.RData$", full.names = TRUE)), 1))
 yrs <- t2d_all_drug_periods %>% group_by(serialno) %>% summarise(first_start = min(dstartdate)) %>% count(yr = format(first_start, "%Y"))
 p("C1o first diabetes drug start per person, year:n", paste0(yrs$yr, ":", n5(yrs$n), collapse = "  "))
-rm(t2d_all_drug_periods, yrs)
+yb <- yrs %>% filter(yr >= "1990", yr <= "2010")
+p("C1o2 same, 1990-2010 only", paste0(yb$yr, ":", n5(yb$n), collapse = "  "))
+p("C1o3 people with first start before 1990", n5(sum(yrs$n[yrs$yr < "1990"])))
+rm(t2d_all_drug_periods, yrs, yb)
 gc()
 
 ## C6 (codelist files) at the end also runs without the database
